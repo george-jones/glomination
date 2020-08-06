@@ -1,0 +1,22 @@
+{
+  "name": "glomination",
+  "version": "1.0.0",
+  "description": "Glomination Game",
+  "main": "./app/main.js",
+  "scripts": {
+		"build": "tsc",
+		"start": "electron ./app/main.js",
+		"package": "electron-packager . --electron-version=9.1.2 --out=dist --ignore=.storybook --ignore=src --ignore=rollup.config.js --ignore=.gitignore --overwrite",
+		"test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "George Jones",
+  "license": "ISC",
+  "dependencies": {
+    "babylonjs": "^4.1.0"
+  },
+  "devDependencies": {
+    "electron": "^9.1.2",
+    "electron-packager": "^15.0.0",
+    "typescript": "^3.9.7"
+  }
+}
