@@ -30,7 +30,7 @@ export default class Renderer {
 		light.intensity = 0.7;
 
 		// Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-		const sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
+		const sphere = BABYLON.Mesh.CreateSphere("sphere1", 5, 2, scene);
 
 		// Move the sphere upward 1/2 its height
 		sphere.position.y = 1;
