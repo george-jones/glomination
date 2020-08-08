@@ -36,32 +36,67 @@ export default class Renderer {
 		//const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0.5, 0.5, -1), scene);
 		//const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 0, -1), scene);
 		const light = new BABYLON.PointLight("sun", new BABYLON.Vector3(0, 0, -1 * lightDistance), scene);
+		const backLight = new BABYLON.PointLight("sun2", new BABYLON.Vector3(0, 0, lightDistance), scene);
 
 		// Default intensity is 1. Let's dim the light a small amount
-		light.intensity = 0.75; //0.7;
+		light.intensity = 0.75;
+		backLight.intensity = 0.75;
 
-		const materialForBall = new BABYLON.StandardMaterial("texture1", scene);
-		materialForBall.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
-		///materialForBall.wireframe = true;
+		const colors = [
+			[ 0.01, 0.07, 0.27 ],
+			[ 0.17, 0.37, 0.57 ],
+			[ 0.67, 0.27, 0.67 ],
+			[ 0.83, 0.49, 0.11 ],
+			[ 0.4, 0.4, 0.4 ],
+			[ 0.73, 0.13, 0.13 ],
+			[ 1.0, 1.0, 0 ]
+		];
+
+		let mat = new BABYLON.StandardMaterial('worldMaterial', scene);
+		mat.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
+		mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
+		
+		//const materialForBall = new BABYLON.StandardMaterial("texture1", scene);
+		
+
+		//materialForBall.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
+		
 
 /*
-	 * 'Picasso (very low)' -> 1280 faces --> 8 subdiv
+	 * 'Very low' -> 1280 faces --> 8 subdiv
 	 * 'Low' -> 5120 faces --> 16 subdiv
 	 * 'Medium' -> 20480 faces --> 32 subdiv
 	 * 'High' -> 81920 faces --> 64 subdiv
 */
 
-		// Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-		//const sphere = BABYLON.Mesh.CreateSphere("sphere1", 32, 1, scene);
-		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe", {radius: 1, subdivisions: 64 }, scene);
-		sphere.material = materialForBall;
+		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
+			{radius: 1, subdivisions: 64, updatable: true }, scene);
+		sphere.useVertexColors = true;
+		sphere.material = mat;
 
-		sphere.updateFacetData();
+		console.log('Number of vertices', sphere.getTotalVertices()); 
+		//let colorArray = new FloatArray(sphere.getTotalVertices());
+		let colorArray = [ ];
+		for (let i=0; i < sphere.getTotalVertices(); i++) {
+			let cnum = Math.floor(Math.random() * colors.length);
+			colorArray.push(colors[cnum][0]);
+			colorArray.push(colors[cnum][1]);
+			colorArray.push(colors[cnum][2]);
+			colorArray.push(1);
+		}
+		//BABYLON.VertexBuffer.
+		sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorArray);
+		//sphere.updateFacetData();
+		console.log(sphere.getVerticesDataKinds());
+		console.log(sphere.getVerticesData(BABYLON.VertexBuffer.ColorKind));
+
 		console.log('Number of facets', sphere.facetNb);
+		console.log('Number of vertices', sphere.getTotalVertices());
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
 
+		/// getClosestFacetAtCoordinates
 
 		// Move the sphere upward 1/2 its height
 		//sphere.position.y = 1;
@@ -75,15 +110,19 @@ export default class Renderer {
 		//sphere.rotate(BABYLON.Axis.X, -Math.PI/2, BABYLON.Space.WORLD);
 
 		let lastCameraPos = camera.position.clone();
-		scene.onBeforeRenderObservable.add(function () {
+		scene.registerBeforeRender(function () {
+		//scene.onBeforeRenderObservable.add(function () {
 			if (lastCameraPos.x != camera.position.x ||
 				lastCameraPos.y != camera.position.y ||
 				lastCameraPos.z != camera.position.z)
 			{
 				let lightPos = camera.position.clone();
 				lightPos.scaleInPlace(lightDistance / lightPos.length());
-
 				light.position = lightPos;
+
+				lightPos = camera.position.clone();
+				lightPos.scaleInPlace(-1 * lightDistance / lightPos.length());
+				backLight.position = lightPos;
 
 				lastCameraPos = camera.position.clone();
 
