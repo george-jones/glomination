@@ -1,22 +1,6 @@
 import * as BABYLON from 'babylonjs';
 
-
-const getFacetVerts =
-(
-	faceNum: number,
-	indices: BABYLON.IndicesArray,
-	positions: BABYLON.FloatArray
-) : Array<BABYLON.Vector3> =>
-{
-	let v1Start = indices[3*faceNum];
-	let v2Start = indices[3*faceNum + 1];
-	let v3Start = indices[3*faceNum + 2];
-	return [
-		new BABYLON.Vector3(positions[3*v1Start], positions[3*v1Start + 1], positions[3*v1Start + 2]),
-		new BABYLON.Vector3(positions[3*v2Start], positions[3*v2Start + 1], positions[3*v2Start + 2]),
-		new BABYLON.Vector3(positions[3*v3Start], positions[3*v3Start + 1], positions[3*v3Start + 2])
-	];
-}
+import Planet from './planet';
 
 export default class Renderer {
 	private _canvas: HTMLCanvasElement;
@@ -71,95 +55,21 @@ export default class Renderer {
 		let mat = new BABYLON.StandardMaterial('worldMaterial', scene);
 		mat.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
 		mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-		
-		//const materialForBall = new BABYLON.StandardMaterial("texture1", scene);
-		
-
-		//materialForBall.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
-		
-
 /*
-	 * 'Very low' -> 1280 faces --> 8 subdiv
-	 * 'Low' -> 5120 faces --> 16 subdiv
-	 * 'Medium' -> 20480 faces --> 32 subdiv
-	 * 'High' -> 81920 faces --> 64 subdiv
+	 * 'Very low' -> 1280 faces  ->  8 subdiv
+	 * 'Low'      -> 5120 faces  -> 16 subdiv
+	 * 'Medium'   -> 20480 faces -> 32 subdiv
+	 * 'High'     -> 81920 faces -> 64 subdiv
 */
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
-			{radius: 1, subdivisions: 1, updatable: true }, scene);
+			{radius: 1, subdivisions: 3, updatable: true }, scene);
 		sphere.material = mat;
 
-		let colorArray = new Float32Array(sphere.getTotalVertices() * 4);
-
-		// make it all water
-		for (let i=0; i < sphere.getTotalVertices(); i++) {
-			//let cnum = Math.floor(Math.random() * colors.length);
-			let cnum = 0;
-			colorArray[i*4] = colors[cnum][0];
-			colorArray[i*4 + 1] = colors[cnum][1];
-			colorArray[i*4 + 2] = colors[cnum][2];
-			colorArray[i*4 + 3] = 1;
-		}
-
-		//BABYLON.VertexBuffer.
-		sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorArray);
-		sphere.updateFacetData();
+		let p = new Planet(sphere);
 
 		console.log('Number of facets', sphere.facetNb);
 		console.log('Number of vertices', sphere.getTotalVertices());
-
-		//console.log(sphere.getIndices());
-		//console.log(sphere.getVertexBuffer(BABYLON.VertexBuffer.PositionKind).getData());
-		//console.log(sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind));
-		//sphere.getIndices()
-
-		// Theory: facet number * 3 = 1st vertex in indices
-		// Is it true?
-		let ind = sphere.getIndices();
-		let vertPos = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-		let facetNum = 2;
-		let facetPositions = sphere.getFacetLocalPositions();
-
-		let facetMidX = facetPositions[facetNum].x;
-		let facetMidY = facetPositions[facetNum].y;
-		let facetMidZ = facetPositions[facetNum].z;
-		console.log(facetMidX, facetMidY, facetMidZ);
-
-		let verts = getFacetVerts(facetNum, ind, vertPos);
-		let mx = 0;
-		let my = 0;
-		let mz = 0;
-		verts.forEach(v => {
-			mx += v.x;
-			my += v.y;
-			mz += v.z;
-		});
-		mx /= 3;
-		my /= 3;
-		mz /= 3;
-		console.log(mx, my, mz);
-
-		/*
-
-		let vmX = (vertPos[0] + vertPos[3] + vertPos[6]) / 3;
-		let vmY = (vertPos[1] + vertPos[4] + vertPos[7]) / 3;
-		let vmZ = (vertPos[2] + vertPos[5] + vertPos[8]) / 3;
-		console.log(vmX, vmY, vmZ);
-		*/
-
-		//console.log(vertPos);
-		//console.log(facetPositions);
-
-
-		
-		//console.log(sphere.getVertexBuffer(BABYLON.VertexBuffer.ColorKind).getData());
-		//console.log(sphere.getIn
-			//(BABYLON.VertexBuffer.PositionKind).getData());
-
-		//for (let i=0; i < sphere.facetNb; i++) {
-			//sphere.getfacet
-		//}
-		//console.log('Number of facets', sphere.facetNb);
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
