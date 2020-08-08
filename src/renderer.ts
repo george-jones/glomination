@@ -1,5 +1,23 @@
 import * as BABYLON from 'babylonjs';
 
+
+const getFacetVerts =
+(
+	faceNum: number,
+	indices: BABYLON.IndicesArray,
+	positions: BABYLON.FloatArray
+) : Array<BABYLON.Vector3> =>
+{
+	let v1Start = indices[3*faceNum];
+	let v2Start = indices[3*faceNum + 1];
+	let v3Start = indices[3*faceNum + 2];
+	return [
+		new BABYLON.Vector3(positions[3*v1Start], positions[3*v1Start + 1], positions[3*v1Start + 2]),
+		new BABYLON.Vector3(positions[3*v2Start], positions[3*v2Start + 1], positions[3*v2Start + 2]),
+		new BABYLON.Vector3(positions[3*v3Start], positions[3*v3Start + 1], positions[3*v3Start + 2])
+	];
+}
+
 export default class Renderer {
 	private _canvas: HTMLCanvasElement;
 	private _engine: BABYLON.Engine;
@@ -36,19 +54,17 @@ export default class Renderer {
 		//const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0.5, 0.5, -1), scene);
 		//const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 0, -1), scene);
 		const light = new BABYLON.PointLight("sun", new BABYLON.Vector3(0, 0, -1 * lightDistance), scene);
-		const backLight = new BABYLON.PointLight("sun2", new BABYLON.Vector3(0, 0, lightDistance), scene);
 
 		// Default intensity is 1. Let's dim the light a small amount
 		light.intensity = 0.75;
-		backLight.intensity = 0.75;
-
+		
 		const colors = [
 			[ 0.01, 0.07, 0.27 ],
-			[ 0.17, 0.37, 0.57 ],
-			[ 0.67, 0.27, 0.67 ],
-			[ 0.83, 0.49, 0.11 ],
+			[ 0.17, 0.42, 0.50 ],
 			[ 0.4, 0.4, 0.4 ],
 			[ 0.73, 0.13, 0.13 ],
+			[ 0.83, 0.49, 0.11 ],
+			[ 0.67, 0.27, 0.67 ],
 			[ 1.0, 1.0, 0 ]
 		];
 
@@ -70,36 +86,85 @@ export default class Renderer {
 */
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
-			{radius: 1, subdivisions: 64, updatable: true }, scene);
-		sphere.useVertexColors = true;
+			{radius: 1, subdivisions: 1, updatable: true }, scene);
 		sphere.material = mat;
 
-		console.log('Number of vertices', sphere.getTotalVertices()); 
-		//let colorArray = new FloatArray(sphere.getTotalVertices());
-		let colorArray = [ ];
+		let colorArray = new Float32Array(sphere.getTotalVertices() * 4);
+
+		// make it all water
 		for (let i=0; i < sphere.getTotalVertices(); i++) {
-			let cnum = Math.floor(Math.random() * colors.length);
-			colorArray.push(colors[cnum][0]);
-			colorArray.push(colors[cnum][1]);
-			colorArray.push(colors[cnum][2]);
-			colorArray.push(1);
+			//let cnum = Math.floor(Math.random() * colors.length);
+			let cnum = 0;
+			colorArray[i*4] = colors[cnum][0];
+			colorArray[i*4 + 1] = colors[cnum][1];
+			colorArray[i*4 + 2] = colors[cnum][2];
+			colorArray[i*4 + 3] = 1;
 		}
+
 		//BABYLON.VertexBuffer.
 		sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorArray);
-		//sphere.updateFacetData();
-		console.log(sphere.getVerticesDataKinds());
-		console.log(sphere.getVerticesData(BABYLON.VertexBuffer.ColorKind));
+		sphere.updateFacetData();
 
 		console.log('Number of facets', sphere.facetNb);
 		console.log('Number of vertices', sphere.getTotalVertices());
+
+		//console.log(sphere.getIndices());
+		//console.log(sphere.getVertexBuffer(BABYLON.VertexBuffer.PositionKind).getData());
+		//console.log(sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind));
+		//sphere.getIndices()
+
+		// Theory: facet number * 3 = 1st vertex in indices
+		// Is it true?
+		let ind = sphere.getIndices();
+		let vertPos = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		let facetNum = 2;
+		let facetPositions = sphere.getFacetLocalPositions();
+
+		let facetMidX = facetPositions[facetNum].x;
+		let facetMidY = facetPositions[facetNum].y;
+		let facetMidZ = facetPositions[facetNum].z;
+		console.log(facetMidX, facetMidY, facetMidZ);
+
+		let verts = getFacetVerts(facetNum, ind, vertPos);
+		let mx = 0;
+		let my = 0;
+		let mz = 0;
+		verts.forEach(v => {
+			mx += v.x;
+			my += v.y;
+			mz += v.z;
+		});
+		mx /= 3;
+		my /= 3;
+		mz /= 3;
+		console.log(mx, my, mz);
+
+		/*
+
+		let vmX = (vertPos[0] + vertPos[3] + vertPos[6]) / 3;
+		let vmY = (vertPos[1] + vertPos[4] + vertPos[7]) / 3;
+		let vmZ = (vertPos[2] + vertPos[5] + vertPos[8]) / 3;
+		console.log(vmX, vmY, vmZ);
+		*/
+
+		//console.log(vertPos);
+		//console.log(facetPositions);
+
+
+		
+		//console.log(sphere.getVertexBuffer(BABYLON.VertexBuffer.ColorKind).getData());
+		//console.log(sphere.getIn
+			//(BABYLON.VertexBuffer.PositionKind).getData());
+
+		//for (let i=0; i < sphere.facetNb; i++) {
+			//sphere.getfacet
+		//}
+		//console.log('Number of facets', sphere.facetNb);
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
 
 		/// getClosestFacetAtCoordinates
-
-		// Move the sphere upward 1/2 its height
-		//sphere.position.y = 1;
 
 		/*
 		let axis = new BABYLON.Vector3(1, 0, 0);
@@ -110,8 +175,10 @@ export default class Renderer {
 		//sphere.rotate(BABYLON.Axis.X, -Math.PI/2, BABYLON.Space.WORLD);
 
 		let lastCameraPos = camera.position.clone();
-		scene.registerBeforeRender(function () {
+
 		//scene.onBeforeRenderObservable.add(function () {
+
+		scene.registerBeforeRender(function () {
 			if (lastCameraPos.x != camera.position.x ||
 				lastCameraPos.y != camera.position.y ||
 				lastCameraPos.z != camera.position.z)
@@ -120,14 +187,9 @@ export default class Renderer {
 				lightPos.scaleInPlace(lightDistance / lightPos.length());
 				light.position = lightPos;
 
-				lightPos = camera.position.clone();
-				lightPos.scaleInPlace(-1 * lightDistance / lightPos.length());
-				backLight.position = lightPos;
-
 				lastCameraPos = camera.position.clone();
 
 				camera.wheelPrecision = Math.max(minWheelPrecision, maxWheelPrecision - 100 * (lastCameraPos.length() - camera.lowerRadiusLimit));
-				//console.log(camera.wheelPrecision);
 			}
 		});
 	}
