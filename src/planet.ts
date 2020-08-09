@@ -17,13 +17,11 @@ export default class Planet {
 
 		this.addColorVertexData();
 		this.makeVertMap();
+		this.fixCloseVertices();
 
-/*
-		const positions = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-		youbad.forEach((val) => {
-			console.log(val + ': ' + this.getVertVector(positions, val))
-		});
-		*/
+		//youbad.forEach((val) => {
+		//	console.log(val + ': ' + this.getVertVector(positions, val))
+		//});
 
 		this.jumbleVertices();
 
@@ -92,11 +90,65 @@ export default class Planet {
 		this.vertMap = vertMap;
 	}
 
+	private fixCloseVertices() {
+		let naughtyList = new Array<number>();
+		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+
+		this.vertMap.forEach((a) => {
+			if (a.length < 5) {
+				if (naughtyList.indexOf(a[0]) < 0) {
+					naughtyList.push(a[0]);
+				}
+			}
+		});
+
+		console.log('Vertices to combine', naughtyList.length);
+
+		// although this is an n^2 operation, it is only looking at the
+		// vertices that have problems so should be acceptably fast
+		naughtyList.forEach(index1 => {
+			let v1 = this.getVertVector(positions, index1)
+			naughtyList.forEach(index2 => {
+				if (index1 !== index2) {
+					let v2 = this.getVertVector(positions, index2);
+					let dist = v1.subtract(v2).length();
+					let list1: number[];
+					let list2: number[];
+					
+					// if they are close enough
+					if (dist < 0.001) {
+						// fix them to be in the same places
+						this.vertMap[index2].forEach(vn => {
+							this.moveVert(positions, vn, v1);
+						});
+
+						// combine their vertMap arrays
+						if (index1 < index2) {
+							list1 = this.vertMap[index1];
+							list2 = this.vertMap[index2];
+						} else {
+							list1 = this.vertMap[index2];
+							list2 = this.vertMap[index1];
+						}
+
+						if (list1.length < 5 && list2.length < 5) {
+							list1.push(...list2);
+							list2.forEach(vn => {
+								this.vertMap[vn] = list1;
+							});
+						}
+					}
+				}
+			});
+		});
+	}
+
+
 	// for every face, move one of its vertices randomly
 	private jumbleVertices() {
 		const indices = this.sphere.getIndices();
 		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-		const maxVeer = 1.0;
+		const maxVeer = 0.5;
 
 		for (let i=0; i < indices.length; i += 3) {
 			let vn1 = this.vertMap[indices[i + 0]][0];
@@ -151,5 +203,17 @@ const getFacetVerts = (faceNum: number, indices: BABYLON.IndicesArray, positions
 		new BABYLON.Vector3(positions[3*v3Start], positions[3*v3Start + 1], positions[3*v3Start + 2])
 	];
 }
+
+
+const colors = [
+	[ 0.01, 0.07, 0.27 ],
+	[ 0.17, 0.42, 0.50 ],
+	[ 0.4, 0.4, 0.4 ],
+	[ 0.73, 0.13, 0.13 ],
+	[ 0.83, 0.49, 0.11 ],
+	[ 0.67, 0.27, 0.67 ],
+	[ 1.0, 1.0, 0 ]
+];
+
 
 */
