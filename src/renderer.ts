@@ -46,6 +46,7 @@ export default class Renderer {
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
 			{radius: 1, subdivisions: 32, updatable: true }, scene);
 		sphere.material = mat;
+		//sphere.convertToFlatShadedMesh();
 
 		let p = new Planet(sphere);
 

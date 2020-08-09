@@ -1,30 +1,66 @@
 import * as BABYLON from 'babylonjs';
+import * as rand from './rand';
+
+class Face {
+	private connectedFaces: Face[];
+	index: number;
+	vertices: number[];
+	color: number[];
+
+	constructor(index: number, vertices: number[], color: number[]) {
+		this.index = index;
+		this.vertices = vertices;
+		this.color = color.slice();
+	}
+
+	connectFace(face: Face) {
+		this.connectedFaces.push(face);
+	}
+}
+
+interface ColorChanger {
+	(colorData : BABYLON.FloatArray) : void;
+}
 
 export default class Planet {
-	// The ball
-	sphere: BABYLON.Mesh;
+	// The globe
+	private sphere: BABYLON.Mesh;
+
+	// Facet-vertex number list (every set of 3 vertices makes a facet)
+	private indices: BABYLON.IndicesArray;
 
 	// a map of vertex numbers that correspond to the same physical locations
-	vertMap: Array<Array<number>>;
+	private vertMap: Array<Array<number>>;
 
 	// A map of base vertex numbers to an array of neighboring base vertex numbers.
 	// And what do I mean by "base" vertex numbers?  The are the ones that are first in their vertMap array.
 	// So if vertices 0, 3, 6, 9, 12 are all actually the same point in space, vertex 0 is the base vertex number.
-	vertNeighbors: Array<Array<number>>;
+	//private vertNeighbors: Array<Array<number>>;
+
+	private faces: Array<Face>;
+
+	private colors = [
+		[ 0.01, 0.05, 0.20 ], // water
+		[ 0.17, 0.42, 0.50 ], // blue
+		[ 0.45, 0.45, 0.45 ], // grey
+		[ 0.73, 0.13, 0.13 ], // red
+		[ 0.83, 0.49, 0.11 ], // orange
+		[ 0.67, 0.27, 0.67 ], // purple
+		[ 0.90, 0.90, 0 ]     // yellow
+	];
 
 	constructor(sphere:BABYLON.Mesh) {
 		this.sphere = sphere;
+		this.indices = this.sphere.getIndices(); // hereby promising not to change the sphere so much that this becomes invalid
+		this.faces = [];
 
 		this.addColorVertexData();
 		this.makeVertMap();
 		this.fixCloseVertices();
-
-		//youbad.forEach((val) => {
-		//	console.log(val + ': ' + this.getVertVector(positions, val))
-		//});
-
 		this.jumbleVertices();
-
+		this.renormal();
+		this.makeFaces();
+	
 		//const positions = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
 		//moveVert(positions, this.vertMap, 0, new BABYLON.Vector3(-1, 1, 1));
@@ -35,27 +71,17 @@ export default class Planet {
 	// The IcoSphere maker doesn't include color vertex data, so this adds that
 	private addColorVertexData() {
 		let colorArray = new Float32Array(this.sphere.getTotalVertices() * 4);
-
-		// for now, make it all blue.  If we don't do this, it will be zeros by default (black)
-		for (let i=0; i < this.sphere.getTotalVertices(); i++) {
-			colorArray[i*4 + 0] = 0.01;
-			colorArray[i*4 + 1] = 0.07;
-			colorArray[i*4 + 2] = 0.27;
-			colorArray[i*4 + 3] = 1;
-		}
-
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorArray);
 		this.sphere.updateFacetData();
 	}
 
 	private makeVertMap() {
-		const indices = this.sphere.getIndices();
 		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 		let posMap = new Map<string, Array<number>>();
 		let vertMap;
 		let maxVertNum = -1;
 	
-		indices.forEach((index:number) => {
+		this.indices.forEach((index:number) => {
 			let k = positions[3 * index] + ',' + positions[3 * index + 1]  + ',' + positions[3 * index + 2];
 			let vertList = posMap.get(k);
 	
@@ -143,20 +169,21 @@ export default class Planet {
 		});
 	}
 
-
 	// for every face, move one of its vertices randomly
 	private jumbleVertices() {
-		const indices = this.sphere.getIndices();
 		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-		const maxVeer = 0.5;
+		const maxVeer = 0.3;
 
-		for (let i=0; i < indices.length; i += 3) {
-			let vn1 = this.vertMap[indices[i + 0]][0];
-			let vn2 = this.vertMap[indices[i + 1]][0];
-			let vn3 = this.vertMap[indices[i + 2]][0];
-			let v1 = this.getVertVector(positions, vn1);
-			let v2 = this.getVertVector(positions, vn2);
-			let v3 = this.getVertVector(positions, vn3);
+		for (let i=0; i < this.indices.length; i += 3) {
+			let vn1 = this.vertMap[this.indices[i + 0]][0];
+			let vn2 = this.vertMap[this.indices[i + 1]][0];
+			let vn3 = this.vertMap[this.indices[i + 2]][0];
+
+			let vertNums = rand.shuffle([ vn1, vn2, vn3 ]);
+
+			let v1 = this.getVertVector(positions, vertNums[0]);
+			let v2 = this.getVertVector(positions, vertNums[1]);
+			let v3 = this.getVertVector(positions, vertNums[2]);
 
 			v2.scaleInPlace(Math.random() * maxVeer);
 			v3.scaleInPlace(Math.random() * maxVeer);
@@ -165,11 +192,16 @@ export default class Planet {
 			v1.addInPlace(v3);
 			v1.normalize();
 			
-			this.moveVert(positions, vn1, v1);
+			this.moveVert(positions, vertNums[0], v1);
 		}
 
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
 		this.sphere.updateFacetData();
+	}
+
+	private renormal() {
+		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		this.sphere.setVerticesData(BABYLON.VertexBuffer.NormalKind, positions);
 	}
 
 	// This function moves all the vertices that occupy the same position as the identified one.
@@ -186,6 +218,51 @@ export default class Planet {
 		return new BABYLON.Vector3(positions[vertNum * 3 + 0],
 			positions[vertNum * 3 + 1],
 			positions[vertNum * 3 + 2]);
+	}
+
+	private makeFaces() {
+		let wc = [
+			{ weight: 10, c: this.colors[0] },
+			{ weight: 1, c: this.colors[1] },
+			{ weight: 1, c: this.colors[2] },
+			{ weight: 0, c: this.colors[3] },
+			{ weight: 0, c: this.colors[4] },
+			{ weight: 0, c: this.colors[5] },
+			{ weight: 1, c: this.colors[6] }
+		];
+		let picker = rand.weightedListPicker(wc);
+
+		for (let i=0; i < this.indices.length; i += 3) {
+			let verts = [
+				this.indices[i + 0],
+				this.indices[i + 1],
+				this.indices[i + 2]
+			];
+			let color = picker().c;
+			
+			let f = new Face(i / 3, verts, color);
+			this.faces.push(f);
+		}
+
+		this.reColor((colorData : BABYLON.FloatArray) => {
+			this.faces.forEach((f) => {
+				f.vertices.forEach((vertNum) => {
+					colorData[vertNum * 4 + 0] = f.color[0];
+					colorData[vertNum * 4 + 1] = f.color[1];
+					colorData[vertNum * 4 + 2] = f.color[2];
+					colorData[vertNum * 4 + 3] = 1.0;
+				});
+			});
+		});
+	}
+
+	// Call this to make changes to face colors.  This makes it so we don't
+	// keep around a big list of color data for any longer than needed, and also
+	// that we don't retrieve it on every single face change.
+	private reColor(changeFunc : ColorChanger) {
+		let colorData = this.sphere.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+		changeFunc(colorData);
+		this.sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorData);
 	}
 }
 
@@ -205,15 +282,6 @@ const getFacetVerts = (faceNum: number, indices: BABYLON.IndicesArray, positions
 }
 
 
-const colors = [
-	[ 0.01, 0.07, 0.27 ],
-	[ 0.17, 0.42, 0.50 ],
-	[ 0.4, 0.4, 0.4 ],
-	[ 0.73, 0.13, 0.13 ],
-	[ 0.83, 0.49, 0.11 ],
-	[ 0.67, 0.27, 0.67 ],
-	[ 1.0, 1.0, 0 ]
-];
 
 
 */
