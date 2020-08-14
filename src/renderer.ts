@@ -6,6 +6,7 @@ export default class Renderer {
 	private _canvas: HTMLCanvasElement;
 	private _engine: BABYLON.Engine;
 	private _scene: BABYLON.Scene;
+	private planet: Planet;
 
 	createScene(canvas: HTMLCanvasElement, engine: BABYLON.Engine) {
 		const lightDistance = 10;
@@ -44,11 +45,11 @@ export default class Renderer {
 */
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
-			{radius: 1, subdivisions: 16, updatable: true }, scene);
+			{radius: 1, subdivisions: 32, updatable: true }, scene);
 		sphere.material = mat;
 		//sphere.convertToFlatShadedMesh();
 
-		let p = new Planet(sphere);
+		this.planet = new Planet(sphere);
 
 		console.log('Number of facets', sphere.facetNb);
 		console.log('Number of vertices', sphere.getTotalVertices());
@@ -82,6 +83,8 @@ export default class Renderer {
 				camera.wheelPrecision = Math.max(minWheelPrecision, maxWheelPrecision - 100 * (lastCameraPos.length() - camera.lowerRadiusLimit));
 			}
 		});
+
+		this.doTerraform(-1);
 	}
 
 	initialize(canvas: HTMLCanvasElement) {
@@ -95,6 +98,25 @@ export default class Renderer {
 		window.addEventListener('resize', function () {
 			engine.resize();
 		});
+	}
+
+	private doTerraform(stepNum: number) {
+		window.requestAnimationFrame(() => {
+			stepNum++;
+			if (stepNum == 0) {
+				this.planet.makeRivers(10);
+			}
+		});
+		/*
+					"complexity": 5,
+			"numRivers": 10,
+			"drizzleNum": 100,
+			"safeSize": 80,
+			"islandKillSize": 5,
+			"islandSafeSize": 20,
+			"islandNeighborhoodRadius": 13,
+			"planetSize": 5.1e8
+			*/
 	}
 }
 

@@ -1,17 +1,31 @@
 import * as BABYLON from 'babylonjs';
 import * as rand from './rand';
 
+
+function getVertVector(positions: BABYLON.FloatArray, vertNum:number) : BABYLON.Vector3 {
+	return new BABYLON.Vector3(positions[vertNum * 3 + 0],
+		positions[vertNum * 3 + 1],
+		positions[vertNum * 3 + 2]);
+}
+
 class Face {
 	index: number;
 	vertices: number[];
 	color: number[];
 	connectedFaces: Face[];
+	midPoint: BABYLON.Vector3;
 
-	constructor(index: number, vertices: number[], color: number[]) {
+	constructor(index: number, vertices: number[], color: number[], positions: BABYLON.FloatArray) {
 		this.index = index;
 		this.vertices = vertices;
 		this.color = color.slice();
 		this.connectedFaces = [ ];
+
+		this.midPoint = new BABYLON.Vector3(0, 0, 0);
+		this.vertices.forEach((v) => {
+			this.midPoint.addInPlace(getVertVector(positions, v));
+		});
+		this.midPoint.normalize();
 	}
 
 	connectFace(face: Face) {
@@ -45,6 +59,7 @@ export default class Planet {
 
 	private colors = [
 		[ 0.01, 0.05, 0.20 ], // water
+		[ 1.00, 1.00, 1.00 ], // unclaimed land
 		[ 0.17, 0.42, 0.60 ], // blue
 		[ 0.45, 0.45, 0.45 ], // grey
 		[ 0.73, 0.13, 0.13 ], // red
@@ -59,7 +74,7 @@ export default class Planet {
 		this.faces = [];
 
 		this.addColorVertexData();
-		this.makecolocatedVertMap();
+		this.makeColocatedVertMap();
 		this.fixCloseVertices();
 		this.jumbleVertices();
 		this.renormal();
@@ -79,7 +94,7 @@ export default class Planet {
 		this.sphere.updateFacetData();
 	}
 
-	private makecolocatedVertMap() {
+	private makeColocatedVertMap() {
 		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 		let posMap = new Map<string, Array<number>>();
 		let colocatedVertMap;
@@ -135,10 +150,10 @@ export default class Planet {
 		// although this is an n^2 operation, it is only looking at the
 		// vertices that have problems so should be acceptably fast
 		naughtyList.forEach(index1 => {
-			let v1 = this.getVertVector(positions, index1)
+			let v1 = getVertVector(positions, index1)
 			naughtyList.forEach(index2 => {
 				if (index1 !== index2) {
-					let v2 = this.getVertVector(positions, index2);
+					let v2 = getVertVector(positions, index2);
 					let dist = v1.subtract(v2).length();
 					let list1: number[];
 					let list2: number[];
@@ -187,9 +202,9 @@ export default class Planet {
 
 			let vertNums = rand.shuffle([ vn1, vn2, vn3 ]);
 
-			let v1 = this.getVertVector(positions, vertNums[0]);
-			let v2 = this.getVertVector(positions, vertNums[1]);
-			let v3 = this.getVertVector(positions, vertNums[2]);
+			let v1 = getVertVector(positions, vertNums[0]);
+			let v2 = getVertVector(positions, vertNums[1]);
+			let v3 = getVertVector(positions, vertNums[2]);
 
 			v2.scaleInPlace(Math.random() * maxVeer);
 			v3.scaleInPlace(Math.random() * maxVeer);
@@ -220,23 +235,8 @@ export default class Planet {
 		});
 	}
 
-	private getVertVector(positions: BABYLON.FloatArray, vertNum:number) : BABYLON.Vector3 {
-		return new BABYLON.Vector3(positions[vertNum * 3 + 0],
-			positions[vertNum * 3 + 1],
-			positions[vertNum * 3 + 2]);
-	}
-
 	private makeFaces() {
-		let wc = [
-			{ weight: 10, c: this.colors[0] },
-			{ weight: 1, c: this.colors[1] },
-			{ weight: 1, c: this.colors[2] },
-			{ weight: 0, c: this.colors[3] },
-			{ weight: 0, c: this.colors[4] },
-			{ weight: 0, c: this.colors[5] },
-			{ weight: 1, c: this.colors[6] }
-		];
-		let picker = rand.weightedListPicker(wc);
+		const positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
 		for (let i=0; i < this.indices.length; i += 3) {
 			let verts = [
@@ -244,9 +244,8 @@ export default class Planet {
 				this.indices[i + 1],
 				this.indices[i + 2]
 			];
-			let color = picker().c;
 			
-			let f = new Face(i / 3, verts, color);
+			let f = new Face(i / 3, verts, this.colors[1], positions);
 			this.faces.push(f);
 		}
 
@@ -319,6 +318,148 @@ export default class Planet {
 		let colorData = this.sphere.getVerticesData(BABYLON.VertexBuffer.ColorKind);
 		changeFunc(colorData);
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorData);
+	}
+
+	public makeRivers(num: number) {
+		for (let i=0; i < num; i++) {
+			this.makeRiver();
+		}
+	}
+
+	private makeRiver() {
+		// pick a random point (two angles)
+		let phi = Math.PI * Math.random();
+		let theta = 2 * Math.PI * Math.random();
+		let v1 = new  BABYLON.Vector3(Math.sin(phi) * Math.cos(theta),
+			Math.sin(phi) * Math.sin(theta),
+			Math.cos(phi));
+
+		// pick a 2nd random point very nearby, but not identical
+		let phi_a = phi + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
+		let theta_a = theta + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
+		let va = new BABYLON.Vector3(Math.sin(phi_a) * Math.cos(theta_a),
+			Math.sin(phi_a) * Math.sin(theta_a),
+			Math.cos(phi_a));
+
+		// find normal vector
+		let n = v1.cross(va).normalize();
+		let v2 = n.cross(v1).normalize();
+		let v3 = n.cross(v2).normalize();
+		let v4 = n.cross(v3).normalize();
+
+		// These 4 points are 90 degrees apart and make a circle around the globe
+		let pts = [ v2, v3, v4, v1 ];
+
+		// find the face that is closest to the starting point
+		var startingFace: Face = ((): Face => {
+			let sf: Face;
+			let dist = -1;
+
+			this.faces.forEach(function (f) {
+				var d = f.midPoint.subtract(v1).lengthSquared();
+				if (!sf || d < dist) {
+					dist = d;
+					sf = f;
+				}
+			});
+
+			return sf;
+		})();
+
+		console.log(startingFace.midPoint);
+
+		/*
+					var geom = mesh.geometry;
+					var verts = geom.vertices;
+
+					// pick a random point (two angles)
+					var phi = Math.PI * Math.random();
+					var theta = 2 * Math.PI * Math.random();
+					var v1 = new THREE.Vector3(Math.sin(phi) * Math.cos(theta),
+						Math.sin(phi) * Math.sin(theta),
+						Math.cos(phi));
+				
+					// pick a 2nd random point very nearby, but not identical
+					var phi_a = phi + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
+					var theta_a = theta + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
+					var va = new THREE.Vector3(Math.sin(phi_a) * Math.cos(theta_a),
+						Math.sin(phi_a) * Math.sin(theta_a),
+						Math.cos(phi_a));
+
+					// find normal vector
+					var n = v1.clone().cross(va).normalize();
+					var v2 = n.clone().cross(v1).normalize();
+					var v3 = n.clone().cross(v2).normalize();
+					var v4 = n.clone().cross(v3).normalize();
+
+					// These 4 points are 90 degrees apart and make a circle around the globe
+					var pts = [ v2, v3, v4, v1 ];
+
+		// find the face that is closest to the starting point
+		var startingFace = (function () {
+			var sf = null;
+			var dist = -1;
+
+			geom.faces.forEach(function (f) {
+				var d = f.midPoint.distanceToSquared(v1);
+				if (!sf || d < dist) {
+					dist = d;
+					sf = f;
+				}
+			});
+
+			return sf;
+		})();
+
+		var path = [ ];
+		var face = startingFace;
+		var prevTarget = startingFace.midPoint;
+		var currentPoint = 0;
+		while (true) {
+			var neighbors = face.connectedFaces;
+			var n = [ ];
+			var target = pts[currentPoint];
+
+			path.push(face);
+			faceWaterify(face);
+
+			var minDist;
+			var faceInDirection = null;
+			var n = [ ];
+			neighbors.forEach(function (f) {
+				if (f.cellType != 'water') {
+					var d = f.midPoint.distanceToSquared(target);
+
+					if (faceInDirection === null || d < minDist) {
+						minDist = d;
+						faceInDirection = f;
+					}
+
+					n.push(f);
+				}
+			});
+
+			if (n.length == 0) {
+				break;
+			}
+
+			if (Math.random() < 0.3) {
+				face = n[Math.floor(n.length * Math.random())];
+			} else {
+				face = faceInDirection;
+			}
+
+			if (currentPoint + 1 < pts.length && face.midPoint.distanceToSquared(prevTarget) > face.midPoint.distanceToSquared(target)) {
+				currentPoint++;
+				if (currentPoint >= pts.length) {
+					break;
+				}
+				prevTarget = target;
+			}
+		}
+
+		mesh.geometry.colorsNeedUpdate = true;
+		*/
 	}
 }
 
