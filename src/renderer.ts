@@ -44,7 +44,7 @@ export default class Renderer {
 */
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
-			{radius: 1, subdivisions: 32, updatable: true }, scene);
+			{radius: 1, subdivisions: 16, updatable: true }, scene);
 		sphere.material = mat;
 		//sphere.convertToFlatShadedMesh();
 
