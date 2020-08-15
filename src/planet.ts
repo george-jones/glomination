@@ -16,6 +16,7 @@ class Face {
 	midPoint: BABYLON.Vector3;
 	cellType: string;
 	region: any;
+	dripGroup: Face[];
 
 	constructor(index: number, vertices: number[], color: number[], positions: BABYLON.FloatArray) {
 		this.index = index;
@@ -74,6 +75,8 @@ export default class Planet {
 		this.sphere = sphere;
 		this.indices = this.sphere.getIndices(); // hereby promising not to change the sphere so much that this becomes invalid
 		this.faces = [];
+
+		this.sphere.isVisible = false;
 
 		this.addColorVertexData();
 		this.makeColocatedVertMap();
@@ -300,8 +303,6 @@ export default class Planet {
 				f.connectFace(otherFace);
 			});
 		});
-
-		this.reColorAll();
 	}
 
 	private reColorAll() {
@@ -330,21 +331,23 @@ export default class Planet {
 		for (let i=0; i < num; i++) {
 			this.makeRiver();
 		}
-
-		this.reColorAll();
 	}
 
-	private faceWaterify(face: Face /*, dripGroup */) {
+	private faceWaterify(face: Face, dripGroup?: Face[]) {
 		face.color = this.colors.water;
 		face.cellType = 'water';
 		face.region = null;
-		/*
+
 		if (dripGroup) {
 			face.dripGroup = dripGroup;
 			dripGroup.push(face);
 		}
-		*/
 	}
+
+	private faceLandify(face:Face) {
+		face.color = this.colors.unclaimed;
+		face.cellType = undefined;
+	};
 
 	private makeRiver() {
 		// pick a random point (two angles)
@@ -433,102 +436,129 @@ export default class Planet {
 				prevTarget = target;
 			}
 		}
+	}
 
-		//mesh.geometry.colorsNeedUpdate = true;
+	public drizzle(num: number) {
+		let i = 0;
+		let t = 0;
+		let f: Face;
+		let dripGroup: Face[];
 
-		/*
-					let geom = mesh.geometry;
-					var verts = geom.vertices;
-
-					// pick a random point (two angles)
-					var phi = Math.PI * Math.random();
-					var theta = 2 * Math.PI * Math.random();
-					var v1 = new THREE.Vector3(Math.sin(phi) * Math.cos(theta),
-						Math.sin(phi) * Math.sin(theta),
-						Math.cos(phi));
-				
-					// pick a 2nd random point very nearby, but not identical
-					var phi_a = phi + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
-					var theta_a = theta + ((Math.random() >= 0.5)? -1 : 1) * (0.01 + 0.01 * Math.random());
-					var va = new THREE.Vector3(Math.sin(phi_a) * Math.cos(theta_a),
-						Math.sin(phi_a) * Math.sin(theta_a),
-						Math.cos(phi_a));
-
-					// find normal vector
-					var n = v1.clone().cross(va).normalize();
-					var v2 = n.clone().cross(v1).normalize();
-					var v3 = n.clone().cross(v2).normalize();
-					var v4 = n.clone().cross(v3).normalize();
-
-					// These 4 points are 90 degrees apart and make a circle around the globe
-					var pts = [ v2, v3, v4, v1 ];
-
-					// find the face that is closest to the starting point
-					var startingFace = (function () {
-						var sf = null;
-						var dist = -1;
-
-						geom.faces.forEach(function (f) {
-							var d = f.midPoint.distanceToSquared(v1);
-							if (!sf || d < dist) {
-								dist = d;
-								sf = f;
-							}
-						});
-
-						return sf;
-					})();
-
-		var path = [ ];
-		var face = startingFace;
-		var prevTarget = startingFace.midPoint;
-		var currentPoint = 0;
-		while (true) {
-			var neighbors = face.connectedFaces;
-			var n = [ ];
-			var target = pts[currentPoint];
-
-			path.push(face);
-			faceWaterify(face);
-
-			var minDist;
-			var faceInDirection = null;
-			var n = [ ];
-			neighbors.forEach(function (f) {
-				if (f.cellType != 'water') {
-					var d = f.midPoint.distanceToSquared(target);
-
-					if (faceInDirection === null || d < minDist) {
-						minDist = d;
-						faceInDirection = f;
-					}
-
-					n.push(f);
+		for (i=0; i < num * 5 && t < num; i++) {
+			f = rand.pick(this.faces)[0];
+			if (!f.connectedFaces.some(function (cf) {
+				if (cf.cellType == 'water') {
+					return true;
 				}
-			});
+			})) {
+				dripGroup = [ ];
+				this.faceWaterify(f, dripGroup);
+				t++;
+			}
+		}
+	};
 
-			if (n.length == 0) {
+	 // Expands watery areas until the desired proportion of the globe is liquid
+	public expandWaters(waterProportion:number, inlandSeaFillProporition: number) {
+		let planet = this;
+		let faces = this.faces;
+		let currentWatery = 0;
+		let wateryWanted = Math.floor(waterProportion * faces.length);
+		let waterFaces = [ ];
+		let dripGroups = [ ];
+
+		faces.forEach(function (f) {
+			if (f.cellType == 'water') {
+				currentWatery++;
+				waterFaces.push(f);
+			}
+		});
+
+		while (true) {
+			let fpick = rand.pick(waterFaces);
+			let landNeighbors: Face[] = [ ];
+			let pickedNeighbor;
+			let f;
+			let face;
+
+			if (!fpick[0]) {
 				break;
 			}
 
-			if (Math.random() < 0.3) {
-				face = n[Math.floor(n.length * Math.random())];
+			face = fpick[0];
+			face.connectedFaces.forEach((nface: Face) => {
+				if (nface.cellType != 'water') {
+					landNeighbors.push(nface);
+				}
+			});
+
+			if (landNeighbors.length == 0) {
+				waterFaces.splice(fpick[1], 1);
 			} else {
-				face = faceInDirection;
+				pickedNeighbor = rand.pick(landNeighbors);
+				f = pickedNeighbor[0];
+				waterFaces.push(f);
+				this.faceWaterify(f, face.dripGroup);
+				if (face.dripGroup && dripGroups.indexOf(face.dripGroup) == -1) {
+					dripGroups.push(face.dripGroup);
+				}
+				currentWatery++;
 			}
 
-			if (currentPoint + 1 < pts.length && face.midPoint.distanceToSquared(prevTarget) > face.midPoint.distanceToSquared(target)) {
-				currentPoint++;
-				if (currentPoint >= pts.length) {
-					break;
-				}
-				prevTarget = target;
+			if (currentWatery >= wateryWanted) {
+				break;
 			}
 		}
 
-		mesh.geometry.colorsNeedUpdate = true;
-		*/
-	}
+		// consolidate drip groups
+		dripGroups.forEach((dg: Face[]) => {
+			let connected: Face[];
+			if (dg.some(function (face: Face) {
+				if (face.connectedFaces.some(function (cf) {
+					if (cf.dripGroup && cf.dripGroup != face.dripGroup) {
+						connected = cf.dripGroup;
+						return true;
+					}
+				})) {
+					return true;
+				}
+			})) {
+				if (connected) {
+					dg.forEach(function (face) {
+						face.dripGroup = connected;
+						connected.push(face);
+					});
+					dg.splice(0, dg.length);
+				}
+			}
+		});
+		
+		// fill in most drip groups that have no contact with seawater
+		dripGroups.forEach((dg: Face[]) => {
+			if (dg.length > 0) {
+				if (!dg.some((face: Face) => {
+					/// check face for contact with seawater
+					if (face.connectedFaces.some((cf) => {
+						if (cf.cellType == 'water' && !cf.dripGroup) {
+							return true;
+						}
+					})) {
+						return true;
+					}
+				})) {
+					// fill in, probably
+					if (Math.random() <= inlandSeaFillProporition) {
+						dg.forEach(function (face) {
+							planet.faceLandify(face);
+						});
+					}
+				}
+			}
+		});
+
+		this.reColorAll();
+		this.sphere.isVisible = true;
+	};
 }
 
 

@@ -102,9 +102,21 @@ export default class Renderer {
 
 	private doTerraform(stepNum: number) {
 		window.requestAnimationFrame(() => {
+			let quit = false;
+
 			stepNum++;
 			if (stepNum == 0) {
 				this.planet.makeRivers(10);
+			} else if (stepNum == 1) {
+				this.planet.drizzle(100);
+			} else if (stepNum == 2) {
+				this.planet.expandWaters(0.67, 0.8);
+			} else {
+				quit = true;
+			}
+
+			if (!quit) {
+				this.doTerraform(stepNum);
 			}
 		});
 		/*
