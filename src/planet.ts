@@ -14,6 +14,8 @@ class Face {
 	color: number[];
 	connectedFaces: Face[];
 	midPoint: BABYLON.Vector3;
+	cellType: string;
+	region: any;
 
 	constructor(index: number, vertices: number[], color: number[], positions: BABYLON.FloatArray) {
 		this.index = index;
@@ -57,16 +59,16 @@ export default class Planet {
 
 	private faces: Array<Face>;
 
-	private colors = [
-		[ 0.01, 0.05, 0.20 ], // water
-		[ 1.00, 1.00, 1.00 ], // unclaimed land
-		[ 0.17, 0.42, 0.60 ], // blue
-		[ 0.45, 0.45, 0.45 ], // grey
-		[ 0.73, 0.13, 0.13 ], // red
-		[ 0.83, 0.49, 0.11 ], // orange
-		[ 0.67, 0.27, 0.67 ], // purple
-		[ 0.85, 0.85, 0 ]     // yellow
-	];
+	private colors = {
+		'water': [ 0.01, 0.05, 0.20 ], // water
+		'unclaimed': [ 1.00, 1.00, 1.00 ], // unclaimed land
+		'p0': [ 0.17, 0.42, 0.60 ], // blue
+		'p1': [ 0.45, 0.45, 0.45 ], // grey
+		'p2': [ 0.73, 0.13, 0.13 ], // red
+		'p3': [ 0.83, 0.49, 0.11 ], // orange
+		'p4': [ 0.67, 0.27, 0.67 ], // purple
+		'p5': [ 0.85, 0.85, 0 ]     // yellow
+	};
 
 	constructor(sphere:BABYLON.Mesh) {
 		this.sphere = sphere;
@@ -245,7 +247,7 @@ export default class Planet {
 				this.indices[i + 2]
 			];
 			
-			let f = new Face(i / 3, verts, this.colors[1], positions);
+			let f = new Face(i / 3, verts, this.colors.unclaimed, positions);
 			this.faces.push(f);
 		}
 
@@ -299,6 +301,10 @@ export default class Planet {
 			});
 		});
 
+		this.reColorAll();
+	}
+
+	private reColorAll() {
 		this.reColor((colorData : BABYLON.FloatArray) => {
 			this.faces.forEach((f) => {
 				f.vertices.forEach((vertNum) => {
@@ -324,6 +330,20 @@ export default class Planet {
 		for (let i=0; i < num; i++) {
 			this.makeRiver();
 		}
+
+		this.reColorAll();
+	}
+
+	private faceWaterify(face: Face /*, dripGroup */) {
+		face.color = this.colors.water;
+		face.cellType = 'water';
+		face.region = null;
+		/*
+		if (dripGroup) {
+			face.dripGroup = dripGroup;
+			dripGroup.push(face);
+		}
+		*/
 	}
 
 	private makeRiver() {
@@ -351,12 +371,12 @@ export default class Planet {
 		let pts = [ v2, v3, v4, v1 ];
 
 		// find the face that is closest to the starting point
-		var startingFace: Face = ((): Face => {
+		let startingFace: Face = ((): Face => {
 			let sf: Face;
 			let dist = -1;
 
 			this.faces.forEach(function (f) {
-				var d = f.midPoint.subtract(v1).lengthSquared();
+				let d = f.midPoint.subtract(v1).lengthSquared();
 				if (!sf || d < dist) {
 					dist = d;
 					sf = f;
@@ -366,10 +386,58 @@ export default class Planet {
 			return sf;
 		})();
 
-		console.log(startingFace.midPoint);
+		let path = [ ];
+		let face = startingFace;
+		let prevTarget = startingFace.midPoint;
+		let currentPoint = 0;
+
+		while (true) {
+			let neighbors = face.connectedFaces;
+			let n:Face[] = [ ];
+			let target = pts[currentPoint];
+
+			path.push(face);
+			this.faceWaterify(face);
+
+			let minDist = -1;
+			let faceInDirection: Face;
+
+			neighbors.forEach(function (f) {
+				if (f.cellType != 'water') {
+					let d = f.midPoint.subtract(target).lengthSquared();
+
+					if (faceInDirection === undefined || d < minDist) {
+						minDist = d;
+						faceInDirection = f;
+					}
+
+					n.push(f);
+				}
+			});
+
+			if (n.length == 0) {
+				break;
+			}
+
+			if (Math.random() < 0.3) {
+				face = n[Math.floor(n.length * Math.random())];
+			} else {
+				face = faceInDirection;
+			}
+
+			if (currentPoint + 1 < pts.length && face.midPoint.subtract(prevTarget).lengthSquared() > face.midPoint.subtract(target).lengthSquared()) {
+				currentPoint++;
+				if (currentPoint >= pts.length) {
+					break;
+				}
+				prevTarget = target;
+			}
+		}
+
+		//mesh.geometry.colorsNeedUpdate = true;
 
 		/*
-					var geom = mesh.geometry;
+					let geom = mesh.geometry;
 					var verts = geom.vertices;
 
 					// pick a random point (two angles)
@@ -395,21 +463,21 @@ export default class Planet {
 					// These 4 points are 90 degrees apart and make a circle around the globe
 					var pts = [ v2, v3, v4, v1 ];
 
-		// find the face that is closest to the starting point
-		var startingFace = (function () {
-			var sf = null;
-			var dist = -1;
+					// find the face that is closest to the starting point
+					var startingFace = (function () {
+						var sf = null;
+						var dist = -1;
 
-			geom.faces.forEach(function (f) {
-				var d = f.midPoint.distanceToSquared(v1);
-				if (!sf || d < dist) {
-					dist = d;
-					sf = f;
-				}
-			});
+						geom.faces.forEach(function (f) {
+							var d = f.midPoint.distanceToSquared(v1);
+							if (!sf || d < dist) {
+								dist = d;
+								sf = f;
+							}
+						});
 
-			return sf;
-		})();
+						return sf;
+					})();
 
 		var path = [ ];
 		var face = startingFace;
