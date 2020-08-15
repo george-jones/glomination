@@ -8,7 +8,7 @@ function getVertVector(positions: BABYLON.FloatArray, vertNum:number) : BABYLON.
 		positions[vertNum * 3 + 2]);
 }
 
-class Face {
+export class Face {
 	index: number;
 	vertices: number[];
 	color: number[];
@@ -76,8 +76,6 @@ export default class Planet {
 		this.indices = this.sphere.getIndices(); // hereby promising not to change the sphere so much that this becomes invalid
 		this.faces = [];
 
-		this.sphere.isVisible = false;
-
 		this.addColorVertexData();
 		this.makeColocatedVertMap();
 		this.fixCloseVertices();
@@ -90,6 +88,14 @@ export default class Planet {
 		//moveVert(positions, this.colocatedVertMap, 0, new BABYLON.Vector3(-1, 1, 1));
 		//this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
 		//this.sphere.updateFacetData();
+	}
+
+	public show() {
+		this.sphere.isVisible = true;
+	}
+
+	public hide() {
+		this.sphere.isVisible = false;
 	}
 
 	// The IcoSphere maker doesn't include color vertex data, so this adds that
@@ -555,10 +561,42 @@ export default class Planet {
 				}
 			}
 		});
+	};
+
+	public despeckle() {
+		let faces = this.faces;
+		let planet = this;
+
+		faces.forEach(function (face) {
+			// find land that is not touching other land
+			if (face.cellType != 'water') {
+				if (!face.connectedFaces.some(function (nf) {
+					if (nf.cellType != 'water') {
+						return true;
+					}
+				})) {
+					// see if there is a connected face that could make a land bridge
+					if (!face.connectedFaces.some(function (nf) {
+						// see if any of the faces linked to that connected face are land.
+						if (nf.connectedFaces.some(function (lf) {
+							if (lf != face && lf.cellType != 'water') {
+								planet.faceLandify(nf);
+								return true;
+							}
+						})) {
+							return true;
+						}
+					})) {
+						// if not, cover the face with water
+						planet.faceWaterify(face);
+					}
+				}
+			}
+		});
 
 		this.reColorAll();
-		this.sphere.isVisible = true;
 	};
+
 }
 
 

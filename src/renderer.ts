@@ -50,6 +50,7 @@ export default class Renderer {
 		//sphere.convertToFlatShadedMesh();
 
 		this.planet = new Planet(sphere);
+		this.planet.hide();
 
 		console.log('Number of facets', sphere.facetNb);
 		console.log('Number of vertices', sphere.getTotalVertices());
@@ -111,7 +112,10 @@ export default class Renderer {
 				this.planet.drizzle(100);
 			} else if (stepNum == 2) {
 				this.planet.expandWaters(0.67, 0.8);
+			} else if (stepNum == 3) {
+				this.planet.despeckle();
 			} else {
+				this.planet.show();
 				quit = true;
 			}
 
