@@ -678,24 +678,56 @@ export class Planet {
 		});
 	}
 
+	public unJaggyBorders() {
+		let planet = this;
+		let faces = this.faces;
+		let positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+
+		faces.forEach(function (f) {
+			var hasBorder = false;
+			var similarNeighbor: Face;
+			var similarNeighbors: Face[] = [ ];
+			if (f.cellType != 'water') {
+				f.connectedFaces.forEach(function (cf) {
+					if (cf.cellType == 'water' || cf.region != f.region) {
+						hasBorder = true;
+					} else {
+						similarNeighbors.push(cf);
+					}
+				});
+				if (similarNeighbors.length > 0) {
+					similarNeighbor = rand.pick(similarNeighbors)[0];
+				}
+				if (hasBorder && similarNeighbor) {
+					// find the vert that can be adjusted - the one that isn't in common between
+					// the 2 faces
+					f.vertices.forEach(function (vertNum) {
+						if (! similarNeighbor.vertices.some(function (nwv) {
+							return planet.getBaseVert(nwv) == planet.getBaseVert(vertNum);
+						})) {
+							let points: BABYLON.Vector3[];
+							let weights: number[];
+							let newVert = new BABYLON.Vector3(0, 0, 0);
+							let i;
+							let totalWeight = 0;
+							let minWeight = 10;
+
+							points = f.vertices.map((vnum) => getVertVector(positions, vnum));
+							weights = [ minWeight + Math.random(), minWeight + Math.random(), minWeight + Math.random() ];
+							points.forEach((v, i) => {
+								v.scaleInPlace(weights[i]);
+								newVert.addInPlace(v);
+							});
+
+							newVert.normalize();
+							planet.moveVert(positions, vertNum, newVert);
+						}
+					});
+				}
+			}
+		});
+
+		this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+		this.sphere.updateFacetData();
+	}
 }
-
-
-
-/*
-
-const getFacetVerts = (faceNum: number, indices: BABYLON.IndicesArray, positions: BABYLON.FloatArray) : Array<BABYLON.Vector3> => {
-	let v1Start = indices[3*faceNum];
-	let v2Start = indices[3*faceNum + 1];
-	let v3Start = indices[3*faceNum + 2];
-	return [
-		new BABYLON.Vector3(positions[3*v1Start], positions[3*v1Start + 1], positions[3*v1Start + 2]),
-		new BABYLON.Vector3(positions[3*v2Start], positions[3*v2Start + 1], positions[3*v2Start + 2]),
-		new BABYLON.Vector3(positions[3*v3Start], positions[3*v3Start + 1], positions[3*v3Start + 2])
-	];
-}
-
-
-
-
-*/

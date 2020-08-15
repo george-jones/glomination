@@ -68,14 +68,6 @@ export default class Renderer {
 
 		/// getClosestFacetAtCoordinates
 
-		/*
-		let axis = new BABYLON.Vector3(1, 0, 0);
-		let angle = Math.PI / 2;
-		let quaternion = new BABYLON.Quaternion.RotationAxis(axis, angle);
-		sphere.rotationQuaternion = quaternion;
-		*/
-		//sphere.rotate(BABYLON.Axis.X, -Math.PI/2, BABYLON.Space.WORLD);
-
 		let lastCameraPos = camera.position.clone();
 
 		scene.registerBeforeRender(function () {
@@ -126,6 +118,8 @@ export default class Renderer {
 				this.planet.createRegions();
 			} else if (stepNum == 5) {
 				this.planet.deSpindlify();
+			} else if (stepNum == 6) {
+				this.planet.unJaggyBorders();
 			} else {
 				this.planet.reColorAll();
 				this.planet.show();
