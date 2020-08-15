@@ -1,8 +1,8 @@
 import * as BABYLON from 'babylonjs';
-import { Face } from './planet';
 import * as rand from './rand';
+import { Planet, Face, TerraformSettings } from './planet';
 
-class Region {
+export class Region {
 	faces: Face[];
 	neighbors: Region[];
 	eaten: boolean;
@@ -125,7 +125,7 @@ class Region {
 	};
 };
 
-export function createRegions (faces: Face[], tfSettings: {}) {
+export function createRegions (faces: Face[], tfSettings: TerraformSettings) {
 	let regions: Region[] = [ ];
 	let uneaten: Region[];
 	let moreToEat: boolean;
@@ -163,6 +163,12 @@ export function createRegions (faces: Face[], tfSettings: {}) {
 		return r.startingPoint.subtract(b.startingPoint).lengthSquared() - r.startingPoint.subtract(a.startingPoint).lengthSquared();
 	};
 
+	interface Merger {
+		consumer: Region;
+		eaten: Region;
+		border: number;
+	}
+
 	let retries = 1;
 	let regionsUnite = () => {
 		let prevRL = regions.length;
@@ -182,7 +188,7 @@ export function createRegions (faces: Face[], tfSettings: {}) {
 
 		rand.shuffle(regions);
 		
-		let possibleMergers: {}[] = [ ];
+		let possibleMergers: Merger[] = [ ];
 
 		regions.forEach((r) => {
 			let edible: Region[] = [ ];
@@ -292,7 +298,7 @@ export function createRegions (faces: Face[], tfSettings: {}) {
 
 	// un-neighbor eaten regions
 	regions.forEach(function (region) {
-		let neighbors = [ ];
+		let neighbors: Region[] = [ ];
 		region.neighbors.forEach(function (neighbor) {
 			if (!neighbor.eaten) {
 				neighbors.push(neighbor);
@@ -305,12 +311,12 @@ export function createRegions (faces: Face[], tfSettings: {}) {
 	// if that's not the case, it looks strange to be drawing arrows
 	// that actually appear to originate outside the region.
 	regions.forEach(function (region) {
-		let min_dist;
-		let closest;
+		let min_dist: number;
+		let closest: BABYLON.Vector3;
 
 		region.faces.forEach(function (face) {
-			let dsq = face.midPoint.distanceToSquared(region.midPoint);
-			if (typeof(min_dist) == 'undefined' || dsq < min_dist) {
+			let dsq = face.midPoint.subtract(region.midPoint).lengthSquared();
+			if (min_dist === undefined || dsq < min_dist) {
 				closest = face.midPoint;
 				min_dist = dsq;
 			}
@@ -322,7 +328,7 @@ export function createRegions (faces: Face[], tfSettings: {}) {
 	return regions;
 };
 
-function regionMeasureBorder (r, r2) {
+function regionMeasureBorder (r: Region, r2: Region) {
 	let neighboringFaces = 0;
 
 	r.faces.forEach(function (face) {
@@ -346,9 +352,9 @@ function regionMeasureBorder (r, r2) {
 	return neighboringFaces;
 };
 
-function findNearestRegionToIsland (region, maxSteps) {
+function findNearestRegionToIsland (region: Region, maxSteps: number) {
 	let facesToCheck = region.faces;
-	let facesChecked = [ ];
+	let facesChecked: Face[] = [ ];
 	
 	// start with faces that border water
 	facesToCheck = region.faces.filter(function (f) {
@@ -358,7 +364,7 @@ function findNearestRegionToIsland (region, maxSteps) {
 	});
 
 	for (let step=0; step < maxSteps; step++) {
-		let nextToCheck = [ ];
+		let nextToCheck: Face[] = [ ];
 		for (let i=0; i < facesToCheck.length; i++) {
 			let f = facesToCheck[i];
 			facesChecked.push(f);
@@ -376,13 +382,13 @@ function findNearestRegionToIsland (region, maxSteps) {
 	}
 };
 
-export function claimIslands (mesh, regions, tfSettings) {
-	let allRegions = regions;
-	let regions = Array.from(regions);
-	let smallRegions = [ ];
+export function claimIslands (planet: Planet, regionsIn: Region[], tfSettings: TerraformSettings) {
+	let allRegions: Region[] = regionsIn;
+	let regions = regionsIn.slice();
+	let smallRegions: Region[] = [ ];
 
 	while (true) {
-		let consumers = [ ];
+		let consumers: Region[] = [ ];
 
 		// find tiny islands
 		regions.forEach(function (region) {
@@ -393,6 +399,7 @@ export function claimIslands (mesh, regions, tfSettings) {
 
 		// find nearest regions
 		smallRegions.forEach(function (region) {
+			let closestRegion: Region;
 			if (!region.eaten) {
 				closestRegion = findNearestRegionToIsland(region, tfSettings.islandNeighborhoodRadius);
 				if (closestRegion) {
@@ -406,7 +413,7 @@ export function claimIslands (mesh, regions, tfSettings) {
 					if (region.faces.length < tfSettings.islandKillSize) {
 						region.eaten = true;
 						region.faces.forEach(function (face) {
-							terraform.faceWaterify(face);
+							planet.faceWaterify(face);
 						});
 					}
 				}
@@ -427,6 +434,5 @@ export function claimIslands (mesh, regions, tfSettings) {
 		return !region.eaten;
 	});
 
-	mesh.geometry.colorsNeedUpdate = true;
 	return regions;
 };

@@ -1,6 +1,6 @@
 import * as BABYLON from 'babylonjs';
 
-import Planet from './planet';
+import { Planet } from './planet';
 
 export default class Renderer {
 	private _canvas: HTMLCanvasElement;
@@ -49,11 +49,19 @@ export default class Renderer {
 		sphere.material = mat;
 		//sphere.convertToFlatShadedMesh();
 
-		this.planet = new Planet(sphere);
+		this.planet = new Planet(sphere, {
+			"complexity": 5,
+			"numRivers": 10,
+			"drizzleNum": 100,
+			"safeSize": 80,
+			"islandKillSize": 5,
+			"islandSafeSize": 20,
+			"islandNeighborhoodRadius": 13,
+			"planetSize": 5.1e8,
+			"waterProportion": 0.67,
+			"inlandSeaFillProporition": 0.8
+		});
 		this.planet.hide();
-
-		console.log('Number of facets', sphere.facetNb);
-		console.log('Number of vertices', sphere.getTotalVertices());
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
@@ -107,14 +115,19 @@ export default class Renderer {
 
 			stepNum++;
 			if (stepNum == 0) {
-				this.planet.makeRivers(10);
+				this.planet.makeRivers();
 			} else if (stepNum == 1) {
-				this.planet.drizzle(100);
+				this.planet.drizzle();
 			} else if (stepNum == 2) {
-				this.planet.expandWaters(0.67, 0.8);
+				this.planet.expandWaters();
 			} else if (stepNum == 3) {
 				this.planet.despeckle();
+			} else if (stepNum == 4) {
+				this.planet.createRegions();
+			} else if (stepNum == 5) {
+				this.planet.deSpindlify();
 			} else {
+				this.planet.reColorAll();
 				this.planet.show();
 				quit = true;
 			}
@@ -123,16 +136,6 @@ export default class Renderer {
 				this.doTerraform(stepNum);
 			}
 		});
-		/*
-					"complexity": 5,
-			"numRivers": 10,
-			"drizzleNum": 100,
-			"safeSize": 80,
-			"islandKillSize": 5,
-			"islandSafeSize": 20,
-			"islandNeighborhoodRadius": 13,
-			"planetSize": 5.1e8
-			*/
 	}
 }
 

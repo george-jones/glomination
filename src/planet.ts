@@ -1,6 +1,6 @@
 import * as BABYLON from 'babylonjs';
 import * as rand from './rand';
-
+import { Region, createRegions, claimIslands } from './countryMaker';
 
 function getVertVector(positions: BABYLON.FloatArray, vertNum:number) : BABYLON.Vector3 {
 	return new BABYLON.Vector3(positions[vertNum * 3 + 0],
@@ -40,7 +40,24 @@ interface ColorChanger {
 	(colorData : BABYLON.FloatArray) : void;
 }
 
-export default class Planet {
+export interface TerraformSettings {
+	complexity: number;
+	numRivers: number;
+	drizzleNum: number;
+	safeSize: number;
+	islandKillSize: number;
+	islandSafeSize: number;
+	islandNeighborhoodRadius: number;
+	waterProportion: number;
+	inlandSeaFillProporition: number;
+	planetSize: number;
+}
+
+interface ColorDef {
+	[index: string]: number[];
+}
+
+export class Planet {
 	// The globe
 	private sphere: BABYLON.Mesh;
 
@@ -57,10 +74,14 @@ export default class Planet {
 	// And what do I mean by "base" vertex numbers?  The are the ones that are first in their colocatedVertMap array.
 	// So if vertices 0, 3, 6, 9, 12 are all actually the same point in space, vertex 0 is the base vertex number.
 	//private vertNeighbors: Array<Array<number>>;
-
 	private faces: Array<Face>;
 
-	private colors = {
+	private tfSettings: TerraformSettings;
+
+	// Countries, really
+	private regions: Region[];
+
+	private colors: ColorDef = {
 		'water': [ 0.01, 0.05, 0.20 ], // water
 		'unclaimed': [ 1.00, 1.00, 1.00 ], // unclaimed land
 		'p0': [ 0.17, 0.42, 0.60 ], // blue
@@ -71,10 +92,11 @@ export default class Planet {
 		'p5': [ 0.85, 0.85, 0 ]     // yellow
 	};
 
-	constructor(sphere:BABYLON.Mesh) {
+	constructor(sphere:BABYLON.Mesh, tfSettings: TerraformSettings) {
 		this.sphere = sphere;
 		this.indices = this.sphere.getIndices(); // hereby promising not to change the sphere so much that this becomes invalid
 		this.faces = [];
+		this.tfSettings = tfSettings;
 
 		this.addColorVertexData();
 		this.makeColocatedVertMap();
@@ -311,7 +333,7 @@ export default class Planet {
 		});
 	}
 
-	private reColorAll() {
+	public reColorAll() {
 		this.reColor((colorData : BABYLON.FloatArray) => {
 			this.faces.forEach((f) => {
 				f.vertices.forEach((vertNum) => {
@@ -333,13 +355,13 @@ export default class Planet {
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorData);
 	}
 
-	public makeRivers(num: number) {
-		for (let i=0; i < num; i++) {
+	public makeRivers() {
+		for (let i=0; i < this.tfSettings.numRivers; i++) {
 			this.makeRiver();
 		}
 	}
 
-	private faceWaterify(face: Face, dripGroup?: Face[]) {
+	public faceWaterify(face: Face, dripGroup?: Face[]) {
 		face.color = this.colors.water;
 		face.cellType = 'water';
 		face.region = null;
@@ -444,11 +466,12 @@ export default class Planet {
 		}
 	}
 
-	public drizzle(num: number) {
+	public drizzle() {
 		let i = 0;
 		let t = 0;
 		let f: Face;
 		let dripGroup: Face[];
+		let num: number = this.tfSettings.drizzleNum;
 
 		for (i=0; i < num * 5 && t < num; i++) {
 			f = rand.pick(this.faces)[0];
@@ -465,9 +488,11 @@ export default class Planet {
 	};
 
 	 // Expands watery areas until the desired proportion of the globe is liquid
-	public expandWaters(waterProportion:number, inlandSeaFillProporition: number) {
+	public expandWaters() {
 		let planet = this;
 		let faces = this.faces;
+		let waterProportion:number = this.tfSettings.waterProportion;
+		let inlandSeaFillProporition: number = this.tfSettings.inlandSeaFillProporition;
 		let currentWatery = 0;
 		let wateryWanted = Math.floor(waterProportion * faces.length);
 		let waterFaces = [ ];
@@ -593,9 +618,65 @@ export default class Planet {
 				}
 			}
 		});
+	}
 
-		this.reColorAll();
-	};
+	private faceMoveRegion (f: Face, oldRegion: Region, newRegion: Region) {
+		newRegion.faces.push(f);
+		oldRegion.faces.splice(oldRegion.faces.indexOf(f), 1);
+		if (newRegion.color) {
+			f.color = newRegion.color;
+		}
+		f.region = newRegion;
+	}
+
+	// Move single pointy faces to surrounding region
+	public deSpindlify () {
+		let planet = this;
+		let i = 0;
+		let num = 1;
+
+		for (i=0; i < num; i++) {
+			this.regions.forEach(function (r) {
+				r.faces.forEach(function (f) {
+					let otherRegion: Region;
+					let connectedToSelf = 0;
+					if (!f.connectedFaces.some(function (cf) {
+						if (cf.region == r) {
+							connectedToSelf++;
+							if (connectedToSelf > 1) {
+								// more than 1 neighboring face in same region, stop.
+								return true;
+							}
+						} else if (cf.region != otherRegion) {
+							if (otherRegion != null) {
+								// more than 1 neighboring region, stop.
+								return true;
+							}
+							otherRegion = cf.region;
+						}
+					})) {
+						if (otherRegion) {
+							planet.faceMoveRegion(f, f.region, otherRegion);
+						}
+					}
+				});
+			});
+		}
+	}
+
+	public createRegions() {
+		let planet = this;
+		let regions = createRegions(this.faces, this.tfSettings);
+		this.regions = claimIslands(this, regions, this.tfSettings);
+
+		// temporary
+		let colorNames = Object.keys(planet.colors).filter((k) => k.startsWith('p'));
+
+		this.regions.forEach((r) => {
+			let colorName: string = rand.pick(colorNames)[0];
+			r.setColor(<number[]> planet.colors[colorName]);
+		});
+	}
 
 }
 
