@@ -65,12 +65,6 @@ export default class Renderer {
 			}
 		}*/
 
-		window.addEventListener('click', () => {
-			//console.log(scene.pointerX, scene.pointerY);
-			let pickResult = scene.pick(scene.pointerX, scene.pointerY);
-			console.log(pickResult);
-		});
-
 		this.planet = new Planet(sphere, {
 			"complexity": 5,
 			"numRivers": 10,
@@ -84,6 +78,19 @@ export default class Renderer {
 			"inlandSeaFillProporition": 0.8
 		});
 		this.planet.hide();
+
+		window.addEventListener('click', () => {
+			//console.log(scene.pointerX, scene.pointerY);
+			let pickResult = scene.pick(scene.pointerX, scene.pointerY);
+			if (pickResult.pickedMesh == sphere) {
+				let region = this.planet.faces[pickResult.faceId].region;
+				if (region) {
+					console.log(region.faces.length);
+				} else {
+					console.log('Not a region');
+				}
+			}
+		});
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
@@ -140,7 +147,7 @@ export default class Renderer {
 			} else {
 				this.planet.reColorAll();
 				// We're supposed to do this after modifying the geometry, which the above
-				// steps certainly have.  But doing that make the mesh unpickable for som
+				// steps certainly have.  But doing that make the mesh unpickable for some
 				// reason.  Weird!
 				// this.sphere.updateFacetData();
 				this.planet.show();

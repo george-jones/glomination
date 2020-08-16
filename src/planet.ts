@@ -74,7 +74,7 @@ export class Planet {
 	// And what do I mean by "base" vertex numbers?  The are the ones that are first in their colocatedVertMap array.
 	// So if vertices 0, 3, 6, 9, 12 are all actually the same point in space, vertex 0 is the base vertex number.
 	//private vertNeighbors: Array<Array<number>>;
-	private faces: Array<Face>;
+	public faces: Array<Face>;
 
 	private tfSettings: TerraformSettings;
 

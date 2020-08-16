@@ -3,7 +3,7 @@ import * as rand from './rand';
 import { Planet, Face, TerraformSettings } from './planet';
 
 export class Region {
-	faces: Face[];
+	public faces: Face[];
 	neighbors: Region[];
 	eaten: boolean;
 	coastal: boolean;
