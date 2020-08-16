@@ -3,28 +3,28 @@ import * as BABYLON from 'babylonjs';
 import { Planet } from './planet';
 
 export default class Renderer {
-	private _canvas: HTMLCanvasElement;
-	private _engine: BABYLON.Engine;
-	private _scene: BABYLON.Scene;
+	private canvas: HTMLCanvasElement;
+	private engine: BABYLON.Engine;
+	private scene: BABYLON.Scene;
 	private planet: Planet;
 
 	createScene(canvas: HTMLCanvasElement, engine: BABYLON.Engine) {
-		const lightDistance = 10;
+		//const lightDistance = 10;
+		const lightDistance = 1.4; //1.5;
 		const minWheelPrecision = 5;
 		const maxWheelPrecision = 250;
-		this._canvas = canvas;
-
-		this._engine = engine;
+		this.canvas = canvas;
+		this.engine = engine;
 
 		// This creates a basic Babylon Scene object (non-mesh)
 		const scene = new BABYLON.Scene(engine);
-		this._scene = scene;
+		this.scene = scene;
 
-		scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.1, 1.0);
+		scene.clearColor = new BABYLON.Color4(0.07, 0.07, 0.07, 1.0);
 
 		const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI/2, Math.PI/2, 2.65, BABYLON.Vector3.Zero(), scene);
 		camera.lowerRadiusLimit = 2.0;
-		camera.upperRadiusLimit = 50;
+		camera.upperRadiusLimit = 10;
 		camera.wheelPrecision = 250;
 		camera.angularSensibilityX = 2000;
 		camera.angularSensibilityY = 2000;
@@ -34,7 +34,8 @@ export default class Renderer {
 		light.intensity = 0.75;
 		
 		let mat = new BABYLON.StandardMaterial('worldMaterial', scene);
-		mat.specularColor = new BABYLON.Color3(0, 0, 0); // no shininess
+		mat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
 		mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
 		//mat.wireframe = true;
 /*
@@ -47,7 +48,6 @@ export default class Renderer {
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
 			{radius: 1, subdivisions: 32, updatable: true }, scene);
 		sphere.material = mat;
-		//sphere.convertToFlatShadedMesh();
 
 		this.planet = new Planet(sphere, {
 			"complexity": 5,
@@ -68,22 +68,17 @@ export default class Renderer {
 
 		/// getClosestFacetAtCoordinates
 
-		let lastCameraPos = camera.position.clone();
+		light.parent = camera;
 
-		scene.registerBeforeRender(function () {
-			if (lastCameraPos.x != camera.position.x ||
-				lastCameraPos.y != camera.position.y ||
-				lastCameraPos.z != camera.position.z)
-			{
-				let lightPos = camera.position.clone();
-				lightPos.scaleInPlace(lightDistance / lightPos.length());
-				light.position = lightPos;
+		let bgPlane = BABYLON.MeshBuilder.CreatePlane("bgPlane", {width: 500, height: 500}, scene);
+		bgPlane.parent = camera;
 
-				lastCameraPos = camera.position.clone();
+		let bgMat = new BABYLON.StandardMaterial('backgroundMaterial', scene);
+		bgMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		bgMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+		bgPlane.material = bgMat;
 
-				camera.wheelPrecision = Math.max(minWheelPrecision, maxWheelPrecision - 100 * (lastCameraPos.length() - camera.lowerRadiusLimit));
-			}
-		});
+		bgPlane.position.set(0, 0, 50);
 
 		this.doTerraform(-1);
 	}
@@ -93,7 +88,7 @@ export default class Renderer {
 		this.createScene(canvas, engine);
 
 		engine.runRenderLoop(() => {
-			this._scene.render();
+			this.scene.render();
 		});
 
 		window.addEventListener('resize', function () {

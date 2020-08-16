@@ -84,12 +84,12 @@ export class Planet {
 	private colors: ColorDef = {
 		'water': [ 0.01, 0.05, 0.20 ], // water
 		'unclaimed': [ 1.00, 1.00, 1.00 ], // unclaimed land
-		'p0': [ 0.17, 0.42, 0.60 ], // blue
+		'p0': [ 0.17, 0.22, 0.60 ], // blue
 		'p1': [ 0.45, 0.45, 0.45 ], // grey
 		'p2': [ 0.73, 0.13, 0.13 ], // red
 		'p3': [ 0.83, 0.49, 0.11 ], // orange
-		'p4': [ 0.67, 0.27, 0.67 ], // purple
-		'p5': [ 0.85, 0.85, 0 ]     // yellow
+		'p4': [ 0.50, 0.25, 0.57 ], // purple
+		'p5': [ 0.80, 0.80, 0.08 ]  // yellow
 	};
 
 	constructor(sphere:BABYLON.Mesh, tfSettings: TerraformSettings) {
@@ -683,7 +683,7 @@ export class Planet {
 		let faces = this.faces;
 		let positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
-		faces.forEach(function (f) {
+		faces.forEach((f) => {
 			var hasBorder = false;
 			var similarNeighbor: Face;
 			var similarNeighbors: Face[] = [ ];
@@ -708,9 +708,7 @@ export class Planet {
 							let points: BABYLON.Vector3[];
 							let weights: number[];
 							let newVert = new BABYLON.Vector3(0, 0, 0);
-							let i;
-							let totalWeight = 0;
-							let minWeight = 10;
+							let minWeight = 9;
 
 							points = f.vertices.map((vnum) => getVertVector(positions, vnum));
 							weights = [ minWeight + Math.random(), minWeight + Math.random(), minWeight + Math.random() ];

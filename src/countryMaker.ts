@@ -179,7 +179,7 @@ export function createRegions (faces: Face[], tfSettings: TerraformSettings) {
 			let pt = new BABYLON.Vector3(0, 0, 0);
 
 			r.faces.forEach((f) => {
-				pt.add(f.midPoint);
+				pt.addInPlace(f.midPoint);
 			});
 
 			pt.scaleInPlace(1 / r.faces.length);
