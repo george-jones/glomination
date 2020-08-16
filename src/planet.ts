@@ -113,11 +113,11 @@ export class Planet {
 	}
 
 	public show() {
-		this.sphere.isVisible = true;
+		this.sphere.setEnabled(true);
 	}
 
 	public hide() {
-		this.sphere.isVisible = false;
+		this.sphere.setEnabled(false);
 	}
 
 	// The IcoSphere maker doesn't include color vertex data, so this adds that
@@ -726,6 +726,5 @@ export class Planet {
 		});
 
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
-		this.sphere.updateFacetData();
 	}
 }

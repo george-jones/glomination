@@ -7,6 +7,7 @@ export default class Renderer {
 	private engine: BABYLON.Engine;
 	private scene: BABYLON.Scene;
 	private planet: Planet;
+	private sphere: BABYLON.Mesh;
 
 	createScene(canvas: HTMLCanvasElement, engine: BABYLON.Engine) {
 		//const lightDistance = 10;
@@ -47,7 +48,28 @@ export default class Renderer {
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
 			{radius: 1, subdivisions: 32, updatable: true }, scene);
+		this.sphere = sphere;
 		sphere.material = mat;
+		let actions = new BABYLON.ActionManager(scene);
+		sphere.actionManager = actions;
+
+		/*
+		scene.onPointerUp = () => {
+			let ray = scene.createPickingRay(scene.pointerX, scene.pointerY, BABYLON.Matrix.Identity(), camera);
+			let hit = scene.pickWithRay(ray);
+
+			if (hit.pickedMesh === sphere){
+				console.log('picked sphere');
+			} else {
+				console.log(hit.pickedMesh);
+			}
+		}*/
+
+		window.addEventListener('click', () => {
+			//console.log(scene.pointerX, scene.pointerY);
+			let pickResult = scene.pick(scene.pointerX, scene.pointerY);
+			console.log(pickResult);
+		});
 
 		this.planet = new Planet(sphere, {
 			"complexity": 5,
@@ -72,12 +94,12 @@ export default class Renderer {
 
 		let bgPlane = BABYLON.MeshBuilder.CreatePlane("bgPlane", {width: 500, height: 500}, scene);
 		bgPlane.parent = camera;
+		bgPlane.isPickable = false;
 
 		let bgMat = new BABYLON.StandardMaterial('backgroundMaterial', scene);
 		bgMat.specularColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 		bgMat.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
 		bgPlane.material = bgMat;
-
 		bgPlane.position.set(0, 0, 50);
 
 		this.doTerraform(-1);
@@ -117,7 +139,12 @@ export default class Renderer {
 				this.planet.unJaggyBorders();
 			} else {
 				this.planet.reColorAll();
+				// We're supposed to do this after modifying the geometry, which the above
+				// steps certainly have.  But doing that make the mesh unpickable for som
+				// reason.  Weird!
+				// this.sphere.updateFacetData();
 				this.planet.show();
+
 				quit = true;
 			}
 
