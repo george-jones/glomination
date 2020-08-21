@@ -745,11 +745,12 @@ export class Planet {
 	public createBorders() {
 		let planet = this;
 		let scene = this.sphere.getScene();
+		let borderWidth = 0.01;
 		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
 
-		borderMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-		borderMaterial.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
-		borderMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+//		borderMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+		borderMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+		borderMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
 
 		const findVertNeighborRegions = (f: Face, vnum: number) => {
 			let bv = this.getBaseVert(vnum);
@@ -834,6 +835,7 @@ export class Planet {
 			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
 			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
 			mesh.material = borderMaterial;
+			mesh.isPickable = false;
 
 			let indices: number[] = new Array<number>(tris.length * 3);
 			let positions: number[] = new Array<number>((tris.length * 3) * 3);
@@ -850,9 +852,12 @@ export class Planet {
 				indices[idx + 1] = idx + 1;
 				indices[idx + 2] = idx + 2;
 
-				let v1 = getVertVector(positionData, tri.tipVert);
-				let v2 = getVertVector(positionData, tri.vertA);
-				let v3 = getVertVector(positionData, tri.vertB);
+				let v1 = getVertVector(positionData, tri.tipVert).scale(1.001);
+				let v2 = getVertVector(positionData, tri.vertA).scale(1.001);
+				let v3 = getVertVector(positionData, tri.vertB).scale(1.001);
+
+				v2 = v1.add(v2.subtract(v1).normalize().scale(borderWidth));
+				v3 = v1.add(v3.subtract(v1).normalize().scale(borderWidth));
 
 				positions[idx*9 + 0] = v1.x;
 				positions[idx*9 + 1] = v1.y;
