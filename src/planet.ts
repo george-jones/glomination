@@ -36,6 +36,20 @@ export class Face {
 	}
 }
 
+interface PlannedQuad {
+	vert1: number;
+	vert2: number;
+	oppositeVert: number;
+	prevEdgeHasSibling: boolean;
+	nextEdgeHasSibling: boolean;
+}
+
+interface PlannedTri {
+	tipVert: number;
+	vertA: number;
+	vertB: number;
+}
+
 interface ColorChanger {
 	(colorData : BABYLON.FloatArray) : void;
 }
@@ -87,9 +101,9 @@ export class Planet {
 		'p0': [ 0.17, 0.22, 0.60 ], // blue
 		'p1': [ 0.45, 0.45, 0.45 ], // grey
 		'p2': [ 0.73, 0.13, 0.13 ], // red
-		'p3': [ 0.83, 0.49, 0.11 ], // orange
+		'p3': [ 0.89, 0.49, 0.11 ], // orange
 		'p4': [ 0.50, 0.25, 0.57 ], // purple
-		'p5': [ 0.80, 0.80, 0.08 ]  // yellow
+		'p5': [ 0.84, 0.84, 0.00 ]  // yellow
 	};
 
 	constructor(sphere:BABYLON.Mesh, tfSettings: TerraformSettings) {
@@ -678,7 +692,7 @@ export class Planet {
 		});
 	}
 
-	public unJaggyBorders() {
+	public smoothPerimeters() {
 		let planet = this;
 		let faces = this.faces;
 		let positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -726,5 +740,148 @@ export class Planet {
 		});
 
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+	}
+
+	public createBorders() {
+		let planet = this;
+		let scene = this.sphere.getScene();
+		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
+
+		borderMaterial.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		borderMaterial.specularColor = new BABYLON.Color3(0.8, 0.8, 0.8);
+		borderMaterial.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5);
+
+		const findVertNeighborRegions = (f: Face, vnum: number) => {
+			let bv = this.getBaseVert(vnum);
+			return this.vertFaceMap.get(bv).some(otherFace => {
+				if (otherFace.region !== f.region) {
+					return true;
+				}
+			});
+		}
+
+		const findEdgeSib = (f: Face, vnum1: number, vnum2: number) => {
+			let bv1 = this.getBaseVert(vnum1);
+			let bv2 = this.getBaseVert(vnum2);
+			let faces1: Face[];
+			let faces2: Face[];
+			let theFace;
+
+			// Find the 1 face that both vertices share, that isn't the original face
+			faces1 = this.vertFaceMap.get(bv1).filter(face => face != f);
+			faces2 = this.vertFaceMap.get(bv2).filter(face => face != f);
+			theFace = faces1.filter(face => faces2.indexOf(face) >= 0)[0];
+
+			if (!theFace) {
+				console.log('Could not find common face');
+				return false;
+			}
+
+			return theFace.region == f.region;
+		};
+
+		this.regions.forEach((r, regionIndex) => {
+			let quads: PlannedQuad[] = [ ];
+			let tris: PlannedTri[] = [ ];
+
+			r.faces.forEach((f) => {
+				let siblingedEdges: boolean[] = [ false, false, false ];
+				let vertNeighborsOutsideRegion: boolean[] = [ ];
+
+				f.vertices.forEach((vnum, idx) => {
+					vertNeighborsOutsideRegion[idx] = findVertNeighborRegions(f, vnum);
+
+				});
+
+				f.vertices.forEach((vnum, idx) => {
+					let vnum2 = f.vertices[(idx + 1) % 3];
+					if (findEdgeSib(f, vnum, vnum2)) {
+						siblingedEdges[idx] = true;
+					}
+				});
+
+				siblingedEdges.forEach((sibness, idx1) => {
+					let idx2 = (idx1 + 1) % 3;
+					let idx3 = (idx1 + 2) % 3;
+					let vn1 = f.vertices[idx1];
+					let vn2 = f.vertices[idx2];
+					let vn3 = f.vertices[idx3];
+					let sibness2 = siblingedEdges[idx2];
+					let sibness3 = siblingedEdges[idx3];
+					if (!sibness) {
+						// Any edge whose opposing face is not a sibling needs a quad border
+						quads.push({
+							vert1: vn1,
+							vert2: vn2,
+							oppositeVert: vn3,
+							prevEdgeHasSibling: sibness3,
+							nextEdgeHasSibling: sibness2
+						});
+					} else if (sibness3 && vertNeighborsOutsideRegion[idx1]) {
+						// And vertex whose 2 connected edges have opposing siblings, but
+						// has at least one connected face that is not a sibling needs a tri border
+						tris.push({
+							tipVert: vn1,
+							vertA: vn2,
+							vertB: vn3
+						});
+					}
+				});
+			});
+
+			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);	
+
+			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
+			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
+			mesh.material = borderMaterial;
+
+			let indices: number[] = new Array<number>(tris.length * 3);
+			let positions: number[] = new Array<number>((tris.length * 3) * 3);
+			let normals: number[];
+
+			/*
+			let indices: number[] = new Array<number>(tris.length * 3 + quads.length * 6);
+			let positions: number[] = new Array<number>((tris.length * 3 + quads.length * 4) * 3);
+			let normals: number[] = new Array<number>(positions.length);
+			*/
+	
+			tris.forEach((tri, idx) => {
+				indices[idx] = idx;
+				indices[idx + 1] = idx + 1;
+				indices[idx + 2] = idx + 2;
+
+				let v1 = getVertVector(positionData, tri.tipVert);
+				let v2 = getVertVector(positionData, tri.vertA);
+				let v3 = getVertVector(positionData, tri.vertB);
+
+				positions[idx*9 + 0] = v1.x;
+				positions[idx*9 + 1] = v1.y;
+				positions[idx*9 + 2] = v1.z;
+				positions[idx*9 + 3] = v2.x;
+				positions[idx*9 + 4] = v2.y;
+				positions[idx*9 + 5] = v2.z;
+				positions[idx*9 + 6] = v3.x;
+				positions[idx*9 + 7] = v3.y;
+				positions[idx*9 + 8] = v3.z;
+			});
+
+			quads.forEach((quad, idx) => {
+				//let indexNumStart = tris.length + idx * 6;
+				//let positionNumStart = (tris.length * 3 + idx * 4) * 3;
+				
+				//indices[trueIndex] = trueIndex;
+			});
+
+			normals = positions.slice();
+
+			let vertexData = new BABYLON.VertexData();
+			vertexData.indices = indices;
+			vertexData.positions = positions;
+			vertexData.normals = normals;
+
+			vertexData.applyToMesh(mesh)
+			r.borderMesh = mesh;
+
+		});
 	}
 }

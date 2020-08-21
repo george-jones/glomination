@@ -143,7 +143,9 @@ export default class Renderer {
 			} else if (stepNum == 5) {
 				this.planet.deSpindlify();
 			} else if (stepNum == 6) {
-				this.planet.unJaggyBorders();
+				this.planet.smoothPerimeters();
+			} else if (stepNum == 7) {
+				this.planet.createBorders();
 			} else {
 				this.planet.reColorAll();
 				// We're supposed to do this after modifying the geometry, which the above

@@ -12,6 +12,7 @@ export class Region {
 	borderFaces: Face[];
 	color: number[];
 	gameData = { }; // a place for higher layer code to store game-specific data for this region
+	borderMesh: BABYLON.Mesh;
 
 	constructor () {
 		this.faces = [ ];
