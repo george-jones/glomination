@@ -830,34 +830,29 @@ export class Planet {
 				});
 			});
 
-			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);	
+			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+			let borderElevation = 1.001;
 
 			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
 			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
 			mesh.material = borderMaterial;
 			mesh.isPickable = false;
 
-			let indices: number[] = new Array<number>(tris.length * 3);
-			let positions: number[] = new Array<number>((tris.length * 3) * 3);
-			let normals: number[];
-
-			/*
 			let indices: number[] = new Array<number>(tris.length * 3 + quads.length * 6);
 			let positions: number[] = new Array<number>((tris.length * 3 + quads.length * 4) * 3);
 			let normals: number[] = new Array<number>(positions.length);
-			*/
 	
 			tris.forEach((tri, idx) => {
 				indices[idx] = idx;
 				indices[idx + 1] = idx + 1;
 				indices[idx + 2] = idx + 2;
 
-				let v1 = getVertVector(positionData, tri.tipVert).scale(1.001);
-				let v2 = getVertVector(positionData, tri.vertA).scale(1.001);
-				let v3 = getVertVector(positionData, tri.vertB).scale(1.001);
+				let v1 = getVertVector(positionData, tri.tipVert).scale(borderElevation);
+				let v2 = getVertVector(positionData, tri.vertA).scale(borderElevation);
+				let v3 = getVertVector(positionData, tri.vertB).scale(borderElevation);
 
-				v2 = v1.add(v2.subtract(v1).normalize().scale(borderWidth));
-				v3 = v1.add(v3.subtract(v1).normalize().scale(borderWidth));
+				v2 = v1.add(v2.subtract(v1).normalize().scaleInPlace(borderWidth));
+				v3 = v1.add(v3.subtract(v1).normalize().scaleInPlace(borderWidth));
 
 				positions[idx*9 + 0] = v1.x;
 				positions[idx*9 + 1] = v1.y;
@@ -871,10 +866,57 @@ export class Planet {
 			});
 
 			quads.forEach((quad, idx) => {
-				//let indexNumStart = tris.length + idx * 6;
-				//let positionNumStart = (tris.length * 3 + idx * 4) * 3;
+				let firstIndexIndex = tris.length * 3 + idx * 6;
+				let firstIndexValue = tris.length * 3 + idx * 4;
+				let firstPosition = (tris.length * 3 + idx * 4) * 3;
+
+				// 1st triangle: 0,1,2
+				indices[firstIndexIndex + 0] = firstIndexValue;
+				indices[firstIndexIndex + 1] = firstIndexValue + 1;
+				indices[firstIndexIndex + 2] = firstIndexValue + 2;
 				
-				//indices[trueIndex] = trueIndex;
+				// 2nd triangel: 2,3,0
+				indices[firstIndexIndex + 3] = firstIndexValue + 2;
+				indices[firstIndexIndex + 4] = firstIndexValue + 3;
+				indices[firstIndexIndex + 5] = firstIndexValue;
+
+				let v1 = getVertVector(positionData, quad.vert1).clone();
+				let v2 = getVertVector(positionData, quad.vert2).clone();
+				let vopp = getVertVector(positionData, quad.oppositeVert);
+				let v3;
+				let v4;
+
+				if (quad.nextEdgeHasSibling) {
+					v3 = v2.add(vopp.subtract(v2).normalize().scaleInPlace(borderWidth));
+				} else {
+					let m = v1.add(vopp).scaleInPlace(0.5);
+					v3 = v2.add(m.subtract(v2).normalize().scaleInPlace(borderWidth));
+				}
+
+				if (quad.prevEdgeHasSibling) {
+					v4 = v1.add(vopp.subtract(v1).normalize().scaleInPlace(borderWidth));
+				} else {
+					let m = v2.add(vopp).scaleInPlace(0.5);
+					v4 = v1.add(m.subtract(v1).normalize().scaleInPlace(borderWidth));
+				}
+
+				v1.scaleInPlace(borderElevation);
+				v2.scaleInPlace(borderElevation);
+				v3.scaleInPlace(borderElevation);
+				v4.scaleInPlace(borderElevation);
+
+				positions[firstPosition + 0] = v1.x;
+				positions[firstPosition + 1] = v1.y;
+				positions[firstPosition + 2] = v1.z;
+				positions[firstPosition + 3] = v2.x;
+				positions[firstPosition + 4] = v2.y;
+				positions[firstPosition + 5] = v2.z;
+				positions[firstPosition + 6] = v3.x;
+				positions[firstPosition + 7] = v3.y;
+				positions[firstPosition + 8] = v3.z;
+				positions[firstPosition + 9] = v4.x;
+				positions[firstPosition +10] = v4.y;
+				positions[firstPosition +11] = v4.z;
 			});
 
 			normals = positions.slice();
