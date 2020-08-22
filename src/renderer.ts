@@ -47,7 +47,7 @@ export default class Renderer {
 */
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
-			{radius: 1, subdivisions: 8, updatable: true }, scene);
+			{radius: 1, subdivisions: 32, updatable: true }, scene);
 		this.sphere = sphere;
 		sphere.material = mat;
 		let actions = new BABYLON.ActionManager(scene);
@@ -85,17 +85,13 @@ export default class Renderer {
 			if (pickResult.pickedMesh == sphere) {
 				let region = this.planet.faces[pickResult.faceId].region;
 				if (region) {
-					console.log(region.faces.length);
-				} else {
-					console.log('Not a region');
+					// do something
 				}
 			}
 		});
 
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
-
-		/// getClosestFacetAtCoordinates
 
 		light.parent = camera;
 

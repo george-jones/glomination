@@ -744,16 +744,16 @@ export class Planet {
 
 	public createBorders() {
 		let scene = this.sphere.getScene();
-		let borderWidth = 0.02; // 0.01
+		let borderWidth = 0.0075;
 		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
 
 		borderMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-		borderMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
-		borderMaterial.alpha = 0.6; // get rid of this later
+		borderMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+		//borderMaterial.alpha = 0.6; // for testing
 
 		const findVertNeighborRegions = (r: Region, vnum: number) => {
 			let bv = this.getBaseVert(vnum);
-			return this.vertFaceMap.get(bv).some(otherFace => {//gsj
+			return this.vertFaceMap.get(bv).some(otherFace => {
 				if (otherFace.region !== r) {
 					return true;
 				}
@@ -841,9 +841,9 @@ export class Planet {
 			let normals: number[] = new Array<number>(positions.length);
 	
 			tris.forEach((tri, triNum) => {
-				indices[triNum] = triNum;
-				indices[triNum + 1] = triNum + 1;
-				indices[triNum + 2] = triNum + 2;
+				indices[triNum*3] = triNum*3;
+				indices[triNum*3+ 1] = triNum*3 + 1;
+				indices[triNum*3 + 2] = triNum*3 + 2;
 
 				let v1 = getVertVector(positionData, tri.tipVert).scale(borderElevation);
 				let v2 = getVertVector(positionData, tri.vertA).scale(borderElevation);
@@ -855,9 +855,11 @@ export class Planet {
 				positions[triNum*9 + 0] = v1.x;
 				positions[triNum*9 + 1] = v1.y;
 				positions[triNum*9 + 2] = v1.z;
+
 				positions[triNum*9 + 3] = v2.x;
 				positions[triNum*9 + 4] = v2.y;
 				positions[triNum*9 + 5] = v2.z;
+
 				positions[triNum*9 + 6] = v3.x;
 				positions[triNum*9 + 7] = v3.y;
 				positions[triNum*9 + 8] = v3.z;
@@ -906,12 +908,15 @@ export class Planet {
 				positions[firstPosition + 0] = v1.x;
 				positions[firstPosition + 1] = v1.y;
 				positions[firstPosition + 2] = v1.z;
+
 				positions[firstPosition + 3] = v2.x;
 				positions[firstPosition + 4] = v2.y;
 				positions[firstPosition + 5] = v2.z;
+
 				positions[firstPosition + 6] = v3.x;
 				positions[firstPosition + 7] = v3.y;
 				positions[firstPosition + 8] = v3.z;
+
 				positions[firstPosition + 9] = v4.x;
 				positions[firstPosition +10] = v4.y;
 				positions[firstPosition +11] = v4.z;
