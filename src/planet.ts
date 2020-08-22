@@ -744,12 +744,13 @@ export class Planet {
 
 	public createBorders() {
 		let scene = this.sphere.getScene();
-		let borderWidth = 0.0075;
+		let borderWidth = 0; //0.0001;//75;
 		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
 
 		borderMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-		borderMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-		//borderMaterial.alpha = 0.6; // for testing
+		borderMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+		borderMaterial.wireframe = true;
+		borderMaterial.alpha = 0.1; // for testing
 
 		const findVertNeighborRegions = (r: Region, vnum: number) => {
 			let bv = this.getBaseVert(vnum);
@@ -819,17 +820,20 @@ export class Planet {
 					} else if (sibness3 && vertNeighborsOutsideRegion[idx1]) {
 						// Any vertex whose 2 connected edges have opposing siblings, but
 						// has at least one connected face that is not a sibling needs a tri border
+						/*
 						tris.push({
 							tipVert: vn1,
 							vertA: vn2,
 							vertB: vn3
 						});
+						*/
 					}
 				});
 			});
 
 			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-			let borderElevation = 1.002;
+			let borderElevation = 1.003;
+			let borderInteriorElevation = 1.003;
 
 			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
 			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
@@ -846,8 +850,8 @@ export class Planet {
 				indices[triNum*3 + 2] = triNum*3 + 2;
 
 				let v1 = getVertVector(positionData, tri.tipVert).scale(borderElevation);
-				let v2 = getVertVector(positionData, tri.vertA).scale(borderElevation);
-				let v3 = getVertVector(positionData, tri.vertB).scale(borderElevation);
+				let v2 = getVertVector(positionData, tri.vertA).scale(borderInteriorElevation);
+				let v3 = getVertVector(positionData, tri.vertB).scale(borderInteriorElevation);
 
 				v2 = v1.add(v2.subtract(v1).normalize().scaleInPlace(borderWidth));
 				v3 = v1.add(v3.subtract(v1).normalize().scaleInPlace(borderWidth));
@@ -902,8 +906,8 @@ export class Planet {
 
 				v1.scaleInPlace(borderElevation);
 				v2.scaleInPlace(borderElevation);
-				v3.scaleInPlace(borderElevation);
-				v4.scaleInPlace(borderElevation);
+				v3.scaleInPlace(borderInteriorElevation);
+				v4.scaleInPlace(borderInteriorElevation);
 
 				positions[firstPosition + 0] = v1.x;
 				positions[firstPosition + 1] = v1.y;
