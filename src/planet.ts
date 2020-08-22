@@ -743,19 +743,18 @@ export class Planet {
 	}
 
 	public createBorders() {
-		let planet = this;
 		let scene = this.sphere.getScene();
-		let borderWidth = 0.01;
+		let borderWidth = 0.02; // 0.01
 		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
 
-//		borderMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.1);
 		borderMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
 		borderMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+		borderMaterial.alpha = 0.6; // get rid of this later
 
-		const findVertNeighborRegions = (f: Face, vnum: number) => {
+		const findVertNeighborRegions = (r: Region, vnum: number) => {
 			let bv = this.getBaseVert(vnum);
-			return this.vertFaceMap.get(bv).some(otherFace => {
-				if (otherFace.region !== f.region) {
+			return this.vertFaceMap.get(bv).some(otherFace => {//gsj
+				if (otherFace.region !== r) {
 					return true;
 				}
 			});
@@ -790,8 +789,7 @@ export class Planet {
 				let vertNeighborsOutsideRegion: boolean[] = [ ];
 
 				f.vertices.forEach((vnum, idx) => {
-					vertNeighborsOutsideRegion[idx] = findVertNeighborRegions(f, vnum);
-
+					vertNeighborsOutsideRegion[idx] = findVertNeighborRegions(r, vnum);
 				});
 
 				f.vertices.forEach((vnum, idx) => {
@@ -801,7 +799,7 @@ export class Planet {
 					}
 				});
 
-				siblingedEdges.forEach((sibness, idx1) => {
+				siblingedEdges.forEach((sibness1, idx1) => {
 					let idx2 = (idx1 + 1) % 3;
 					let idx3 = (idx1 + 2) % 3;
 					let vn1 = f.vertices[idx1];
@@ -809,7 +807,7 @@ export class Planet {
 					let vn3 = f.vertices[idx3];
 					let sibness2 = siblingedEdges[idx2];
 					let sibness3 = siblingedEdges[idx3];
-					if (!sibness) {
+					if (!sibness1) {
 						// Any edge whose opposing face is not a sibling needs a quad border
 						quads.push({
 							vert1: vn1,
@@ -819,7 +817,7 @@ export class Planet {
 							nextEdgeHasSibling: sibness2
 						});
 					} else if (sibness3 && vertNeighborsOutsideRegion[idx1]) {
-						// And vertex whose 2 connected edges have opposing siblings, but
+						// Any vertex whose 2 connected edges have opposing siblings, but
 						// has at least one connected face that is not a sibling needs a tri border
 						tris.push({
 							tipVert: vn1,
@@ -831,7 +829,7 @@ export class Planet {
 			});
 
 			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-			let borderElevation = 1.001;
+			let borderElevation = 1.002;
 
 			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
 			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
@@ -842,10 +840,10 @@ export class Planet {
 			let positions: number[] = new Array<number>((tris.length * 3 + quads.length * 4) * 3);
 			let normals: number[] = new Array<number>(positions.length);
 	
-			tris.forEach((tri, idx) => {
-				indices[idx] = idx;
-				indices[idx + 1] = idx + 1;
-				indices[idx + 2] = idx + 2;
+			tris.forEach((tri, triNum) => {
+				indices[triNum] = triNum;
+				indices[triNum + 1] = triNum + 1;
+				indices[triNum + 2] = triNum + 2;
 
 				let v1 = getVertVector(positionData, tri.tipVert).scale(borderElevation);
 				let v2 = getVertVector(positionData, tri.vertA).scale(borderElevation);
@@ -854,21 +852,21 @@ export class Planet {
 				v2 = v1.add(v2.subtract(v1).normalize().scaleInPlace(borderWidth));
 				v3 = v1.add(v3.subtract(v1).normalize().scaleInPlace(borderWidth));
 
-				positions[idx*9 + 0] = v1.x;
-				positions[idx*9 + 1] = v1.y;
-				positions[idx*9 + 2] = v1.z;
-				positions[idx*9 + 3] = v2.x;
-				positions[idx*9 + 4] = v2.y;
-				positions[idx*9 + 5] = v2.z;
-				positions[idx*9 + 6] = v3.x;
-				positions[idx*9 + 7] = v3.y;
-				positions[idx*9 + 8] = v3.z;
+				positions[triNum*9 + 0] = v1.x;
+				positions[triNum*9 + 1] = v1.y;
+				positions[triNum*9 + 2] = v1.z;
+				positions[triNum*9 + 3] = v2.x;
+				positions[triNum*9 + 4] = v2.y;
+				positions[triNum*9 + 5] = v2.z;
+				positions[triNum*9 + 6] = v3.x;
+				positions[triNum*9 + 7] = v3.y;
+				positions[triNum*9 + 8] = v3.z;
 			});
 
-			quads.forEach((quad, idx) => {
-				let firstIndexIndex = tris.length * 3 + idx * 6;
-				let firstIndexValue = tris.length * 3 + idx * 4;
-				let firstPosition = (tris.length * 3 + idx * 4) * 3;
+			quads.forEach((quad, quadNum) => {
+				let firstIndexIndex = tris.length * 3 + quadNum * 6;
+				let firstIndexValue = tris.length * 3 + quadNum * 4;
+				let firstPosition = (tris.length * 3 + quadNum * 4) * 3;
 
 				// 1st triangle: 0,1,2
 				indices[firstIndexIndex + 0] = firstIndexValue;
