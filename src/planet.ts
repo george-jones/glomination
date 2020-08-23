@@ -743,23 +743,9 @@ export class Planet {
 	}
 
 	public createBorders() {
-		let scene = this.sphere.getScene();
-		let borderWidth = 0; //0.0001;//75;
-		let borderMaterial = new BABYLON.StandardMaterial('borderMaterial', scene);
-
-		borderMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-		borderMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.1, 0.1);
-		borderMaterial.wireframe = true;
-		borderMaterial.alpha = 0.1; // for testing
-
-		const findVertNeighborRegions = (r: Region, vnum: number) => {
-			let bv = this.getBaseVert(vnum);
-			return this.vertFaceMap.get(bv).some(otherFace => {
-				if (otherFace.region !== r) {
-					return true;
-				}
-			});
-		}
+		const scene = this.sphere.getScene();
+		const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		let borderElevation = 1.002;
 
 		const findEdgeSib = (f: Face, vnum1: number, vnum2: number) => {
 			let bv1 = this.getBaseVert(vnum1);
@@ -782,16 +768,9 @@ export class Planet {
 		};
 
 		this.regions.forEach((r, regionIndex) => {
-			let quads: PlannedQuad[] = [ ];
-			let tris: PlannedTri[] = [ ];
-
+			let lines: BABYLON.Vector3[][] = [ ];
 			r.faces.forEach((f) => {
 				let siblingedEdges: boolean[] = [ false, false, false ];
-				let vertNeighborsOutsideRegion: boolean[] = [ ];
-
-				f.vertices.forEach((vnum, idx) => {
-					vertNeighborsOutsideRegion[idx] = findVertNeighborRegions(r, vnum);
-				});
 
 				f.vertices.forEach((vnum, idx) => {
 					let vnum2 = f.vertices[(idx + 1) % 3];
@@ -800,142 +779,28 @@ export class Planet {
 					}
 				});
 
-				siblingedEdges.forEach((sibness1, idx1) => {
+				siblingedEdges.forEach((sibness, idx1) => {
 					let idx2 = (idx1 + 1) % 3;
-					let idx3 = (idx1 + 2) % 3;
 					let vn1 = f.vertices[idx1];
 					let vn2 = f.vertices[idx2];
-					let vn3 = f.vertices[idx3];
-					let sibness2 = siblingedEdges[idx2];
-					let sibness3 = siblingedEdges[idx3];
-					if (!sibness1) {
-						// Any edge whose opposing face is not a sibling needs a quad border
-						quads.push({
-							vert1: vn1,
-							vert2: vn2,
-							oppositeVert: vn3,
-							prevEdgeHasSibling: sibness3,
-							nextEdgeHasSibling: sibness2
-						});
-					} else if (sibness3 && vertNeighborsOutsideRegion[idx1]) {
-						// Any vertex whose 2 connected edges have opposing siblings, but
-						// has at least one connected face that is not a sibling needs a tri border
-						/*
-						tris.push({
-							tipVert: vn1,
-							vertA: vn2,
-							vertB: vn3
-						});
-						*/
+					if (!sibness) {
+						// Any edge whose opposing face is not a sibling needs a border
+						lines.push([ getVertVector(positionData, vn1).scale(borderElevation), getVertVector(positionData, vn2).scale(borderElevation) ]);
 					}
 				});
 			});
 
-			const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-			let borderElevation = 1.003;
-			let borderInteriorElevation = 1.003;
-
-			// Create border mesh, 1 triangle per tri, 2 triangles per quad.
-			let mesh = new BABYLON.Mesh(`border${regionIndex}`, scene);
-			mesh.material = borderMaterial;
-			mesh.isPickable = false;
-
-			let indices: number[] = new Array<number>(tris.length * 3 + quads.length * 6);
-			let positions: number[] = new Array<number>((tris.length * 3 + quads.length * 4) * 3);
-			let normals: number[] = new Array<number>(positions.length);
-	
-			tris.forEach((tri, triNum) => {
-				indices[triNum*3] = triNum*3;
-				indices[triNum*3+ 1] = triNum*3 + 1;
-				indices[triNum*3 + 2] = triNum*3 + 2;
-
-				let v1 = getVertVector(positionData, tri.tipVert).scale(borderElevation);
-				let v2 = getVertVector(positionData, tri.vertA).scale(borderInteriorElevation);
-				let v3 = getVertVector(positionData, tri.vertB).scale(borderInteriorElevation);
-
-				v2 = v1.add(v2.subtract(v1).normalize().scaleInPlace(borderWidth));
-				v3 = v1.add(v3.subtract(v1).normalize().scaleInPlace(borderWidth));
-
-				positions[triNum*9 + 0] = v1.x;
-				positions[triNum*9 + 1] = v1.y;
-				positions[triNum*9 + 2] = v1.z;
-
-				positions[triNum*9 + 3] = v2.x;
-				positions[triNum*9 + 4] = v2.y;
-				positions[triNum*9 + 5] = v2.z;
-
-				positions[triNum*9 + 6] = v3.x;
-				positions[triNum*9 + 7] = v3.y;
-				positions[triNum*9 + 8] = v3.z;
-			});
-
-			quads.forEach((quad, quadNum) => {
-				let firstIndexIndex = tris.length * 3 + quadNum * 6;
-				let firstIndexValue = tris.length * 3 + quadNum * 4;
-				let firstPosition = (tris.length * 3 + quadNum * 4) * 3;
-
-				// 1st triangle: 0,1,2
-				indices[firstIndexIndex + 0] = firstIndexValue;
-				indices[firstIndexIndex + 1] = firstIndexValue + 1;
-				indices[firstIndexIndex + 2] = firstIndexValue + 2;
-				
-				// 2nd triangel: 2,3,0
-				indices[firstIndexIndex + 3] = firstIndexValue + 2;
-				indices[firstIndexIndex + 4] = firstIndexValue + 3;
-				indices[firstIndexIndex + 5] = firstIndexValue;
-
-				let v1 = getVertVector(positionData, quad.vert1).clone();
-				let v2 = getVertVector(positionData, quad.vert2).clone();
-				let vopp = getVertVector(positionData, quad.oppositeVert);
-				let v3;
-				let v4;
-
-				if (quad.nextEdgeHasSibling) {
-					v3 = v2.add(vopp.subtract(v2).normalize().scaleInPlace(borderWidth));
-				} else {
-					let m = v1.add(vopp).scaleInPlace(0.5);
-					v3 = v2.add(m.subtract(v2).normalize().scaleInPlace(borderWidth));
-				}
-
-				if (quad.prevEdgeHasSibling) {
-					v4 = v1.add(vopp.subtract(v1).normalize().scaleInPlace(borderWidth));
-				} else {
-					let m = v2.add(vopp).scaleInPlace(0.5);
-					v4 = v1.add(m.subtract(v1).normalize().scaleInPlace(borderWidth));
-				}
-
-				v1.scaleInPlace(borderElevation);
-				v2.scaleInPlace(borderElevation);
-				v3.scaleInPlace(borderInteriorElevation);
-				v4.scaleInPlace(borderInteriorElevation);
-
-				positions[firstPosition + 0] = v1.x;
-				positions[firstPosition + 1] = v1.y;
-				positions[firstPosition + 2] = v1.z;
-
-				positions[firstPosition + 3] = v2.x;
-				positions[firstPosition + 4] = v2.y;
-				positions[firstPosition + 5] = v2.z;
-
-				positions[firstPosition + 6] = v3.x;
-				positions[firstPosition + 7] = v3.y;
-				positions[firstPosition + 8] = v3.z;
-
-				positions[firstPosition + 9] = v4.x;
-				positions[firstPosition +10] = v4.y;
-				positions[firstPosition +11] = v4.z;
-			});
-
-			normals = positions.slice();
-
-			let vertexData = new BABYLON.VertexData();
-			vertexData.indices = indices;
-			vertexData.positions = positions;
-			vertexData.normals = normals;
-
-			vertexData.applyToMesh(mesh)
-			r.borderMesh = mesh;
-
+			if (lines.length > 0) {
+				let lineSystem = BABYLON.MeshBuilder.CreateLineSystem(`lineSystem${regionIndex}`, {
+					lines: lines,
+					useVertexAlpha: false
+				}, scene);
+				lineSystem.color = new BABYLON.Color3(0, 0, 0);
+				lineSystem.enableEdgesRendering();
+				lineSystem.edgesWidth = 1.0;
+				lineSystem.edgesColor = new BABYLON.Color4(0, 0, 0, 0.05);
+				r.borderMesh = lineSystem;
+			}
 		});
 	}
 }
