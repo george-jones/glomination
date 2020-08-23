@@ -53,18 +53,6 @@ export default class Renderer {
 		let actions = new BABYLON.ActionManager(scene);
 		sphere.actionManager = actions;
 
-		/*
-		scene.onPointerUp = () => {
-			let ray = scene.createPickingRay(scene.pointerX, scene.pointerY, BABYLON.Matrix.Identity(), camera);
-			let hit = scene.pickWithRay(ray);
-
-			if (hit.pickedMesh === sphere){
-				console.log('picked sphere');
-			} else {
-				console.log(hit.pickedMesh);
-			}
-		}*/
-
 		this.planet = new Planet(sphere, {
 			"complexity": 5,
 			"numRivers": 10,
