@@ -695,77 +695,33 @@ export class Planet {
 	public smoothPerimeters() {
 		let planet = this;
 		let positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		let minimumLen = 0.01;
+		let minSmooth = 0.1;
+		let randSmooth = 0.4;
 
-		// smooth watery triangles surrounded multiples sides by land
+		// smooth triangles surrounded on multiples sides by non-siblings
 		this.faces.forEach((f) => {
-			if (f.cellType == 'water') {
-				let nonWaterNeighbors = f.connectedFaces.filter(cf => cf.cellType != 'water');
-				if (nonWaterNeighbors.length > 1) {
-					let myBaseVerts = f.vertices.map(vn => planet.getBaseVert(vn));
-					nonWaterNeighbors.forEach(cf => {
-						// find 2 common points
-						let connBaseVerts = cf.vertices.map(vn => planet.getBaseVert(vn)).filter(vn => myBaseVerts.indexOf(vn) >= 0);
-						if (connBaseVerts.length == 2) {
-							let vert0 = getVertVector(positions, connBaseVerts[0]);
-							let vert1 = getVertVector(positions, connBaseVerts[1]);
-							let newVert0 = vert0.add(vert1.scale(0.38 + 0.1 * Math.random())).normalize();
-							let newVert1 = vert1.add(vert0.scale(0.38 + 0.1 * Math.random())).normalize();
+			let nonSiblingNeighbors = f.connectedFaces.filter(cf => cf.cellType != f.cellType || cf.region != f.region);
+			if (nonSiblingNeighbors.length > 1) {
+				let myBaseVerts = f.vertices.map(vn => planet.getBaseVert(vn));
+				nonSiblingNeighbors.forEach(nsn => {
+					// find 2 common points
+					let connBaseVerts = nsn.vertices.map(vn => planet.getBaseVert(vn)).filter(vn => myBaseVerts.indexOf(vn) >= 0);
+					if (connBaseVerts.length == 2) {
+						let vert0 = getVertVector(positions, connBaseVerts[0]);
+						let vert1 = getVertVector(positions, connBaseVerts[1]);
+						let newVert0 = vert0.add(vert1.scale(minSmooth + randSmooth * Math.random())).normalize();
+						let newVert1 = vert1.add(vert0.scale(minSmooth + randSmooth * Math.random())).normalize();
+						let newSideLen = newVert0.subtract(newVert1).length();
+
+						if (newSideLen > minimumLen) {
 							planet.moveVert(positions, connBaseVerts[0], newVert0);
 							planet.moveVert(positions, connBaseVerts[1], newVert1);
 						}
-					});
-				}
-			}
-		});
-
-
-		/*
-		let planet = this;
-		let faces = this.faces;
-		let positions = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-		faces.forEach((f) => {
-			var hasBorder = false;
-			var similarNeighbor: Face;
-			var similarNeighbors: Face[] = [ ];
-			if (f.cellType != 'water') {
-				f.connectedFaces.forEach(function (cf) {
-					if (cf.cellType == 'water' || cf.region != f.region) {
-						hasBorder = true;
-					} else {
-						similarNeighbors.push(cf);
 					}
 				});
-				if (similarNeighbors.length > 0) {
-					similarNeighbor = rand.pick(similarNeighbors)[0];
-				}
-				if (hasBorder && similarNeighbor) {
-					// find the vert that can be adjusted - the one that isn't in common between
-					// the 2 faces
-					f.vertices.forEach(function (vertNum) {
-						if (! similarNeighbor.vertices.some(function (nwv) {
-							return planet.getBaseVert(nwv) == planet.getBaseVert(vertNum);
-						})) {
-							let points: BABYLON.Vector3[];
-							let weights: number[];
-							let newVert = new BABYLON.Vector3(0, 0, 0);
-							let minWeight = 0.1;
-
-							points = f.vertices.map((vnum) => getVertVector(positions, vnum));
-							weights = [ minWeight + Math.random(), minWeight + Math.random(), minWeight + Math.random() ];
-							points.forEach((v, i) => {
-								v.scaleInPlace(weights[i]);
-								newVert.addInPlace(v);
-							});
-
-							newVert.normalize();
-							planet.moveVert(positions, vertNum, newVert);
-						}
-					});
-				}
 			}
 		});
-		*/
 
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
 	}
