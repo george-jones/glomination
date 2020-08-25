@@ -4,6 +4,7 @@ import { Planet, Face, TerraformSettings } from './planet';
 
 export class Region {
 	public faces: Face[];
+	public selected: boolean;
 	neighbors: Region[];
 	eaten: boolean;
 	coastal: boolean;
@@ -16,6 +17,7 @@ export class Region {
 
 	constructor () {
 		this.faces = [ ];
+		this.selected = false;
 		this.neighbors = [ ];
 		this.eaten = false;
 		this.coastal = false;

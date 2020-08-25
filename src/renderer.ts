@@ -1,6 +1,7 @@
 import * as BABYLON from 'babylonjs';
 
 import { Planet } from './planet';
+import { Game } from './game';
 
 export default class Renderer {
 	private canvas: HTMLCanvasElement;
@@ -8,6 +9,7 @@ export default class Renderer {
 	private scene: BABYLON.Scene;
 	private planet: Planet;
 	private sphere: BABYLON.Mesh;
+	private game: Game;
 
 	createScene(canvas: HTMLCanvasElement, engine: BABYLON.Engine) {
 		//const lightDistance = 10;
@@ -39,12 +41,6 @@ export default class Renderer {
 		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
 		mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
 		//mat.wireframe = true;
-/*
-	 * 'Very low' -> 1280 faces  ->  8 subdiv
-	 * 'Low'      -> 5120 faces  -> 16 subdiv
-	 * 'Medium'   -> 20480 faces -> 32 subdiv
-	 * 'High'     -> 81920 faces -> 64 subdiv
-*/
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
 			{radius: 1, subdivisions: 32, updatable: true }, scene);
@@ -67,17 +63,6 @@ export default class Renderer {
 		});
 		this.planet.hide();
 
-		window.addEventListener('click', () => {
-			//console.log(scene.pointerX, scene.pointerY);
-			let pickResult = scene.pick(scene.pointerX, scene.pointerY);
-			if (pickResult.pickedMesh == sphere) {
-				let region = this.planet.faces[pickResult.faceId].region;
-				if (region) {
-					// do something
-				}
-			}
-		});
-
 		// This targets the camera to scene origin
 		camera.setTarget(sphere);
 
@@ -93,7 +78,9 @@ export default class Renderer {
 		bgPlane.material = bgMat;
 		bgPlane.position.set(0, 0, 50);
 
-		this.doTerraform(-1);
+		this.doTerraform(-1, () => {
+			this.game = new Game(this.planet, this.scene);
+		});
 	}
 
 	initialize(canvas: HTMLCanvasElement) {
@@ -104,14 +91,14 @@ export default class Renderer {
 			this.scene.render();
 		});
 
-		window.addEventListener('resize', function () {
+		window.addEventListener('resize', () => {
 			engine.resize();
 		});
 	}
 
-	private doTerraform(stepNum: number) {
+	private doTerraform(stepNum: number, finito: Function) {
 		window.requestAnimationFrame(() => {
-			let quit = false;
+			let allDone = false;
 
 			stepNum++;
 			if (stepNum == 0) {
@@ -136,13 +123,13 @@ export default class Renderer {
 				// steps certainly have.  But doing that make the mesh unpickable for some
 				// reason.  Weird!
 				// this.sphere.updateFacetData();
-				this.planet.show();
-
-				quit = true;
+				allDone = true;
 			}
 
-			if (!quit) {
-				this.doTerraform(stepNum);
+			if (allDone) {
+				finito();
+			} else {
+				this.doTerraform(stepNum, finito);
 			}
 		});
 	}

@@ -73,7 +73,10 @@ interface ColorDef {
 
 export class Planet {
 	// The globe
-	private sphere: BABYLON.Mesh;
+	public sphere: BABYLON.Mesh;
+
+	// Parent of borders
+	public borders: BABYLON.TransformNode;
 
 	// Facet-vertex number list (every set of 3 vertices makes a facet)
 	private indices: BABYLON.IndicesArray;
@@ -93,24 +96,19 @@ export class Planet {
 	private tfSettings: TerraformSettings;
 
 	// Countries, really
-	private regions: Region[];
+	public regions: Region[];
 
 	private colors: ColorDef = {
-		'water': [ 0.01, 0.05, 0.20 ], // water
-		'unclaimed': [ 1.00, 1.00, 1.00 ], // unclaimed land
-		'p0': [ 0.17, 0.22, 0.60 ], // blue
-		'p1': [ 0.45, 0.45, 0.45 ], // grey
-		'p2': [ 0.73, 0.13, 0.13 ], // red
-		'p3': [ 0.89, 0.49, 0.11 ], // orange
-		'p4': [ 0.50, 0.25, 0.57 ], // purple
-		'p5': [ 0.84, 0.84, 0.00 ]  // yellow
-	};
+		'water': [ 0.01, 0.05, 0.20 ],
+		'unclaimed': [ 0.03, 0.03, 0.01 ]
+	}
 
 	constructor(sphere:BABYLON.Mesh, tfSettings: TerraformSettings) {
 		this.sphere = sphere;
 		this.indices = this.sphere.getIndices(); // hereby promising not to change the sphere so much that this becomes invalid
 		this.faces = [];
 		this.tfSettings = tfSettings;
+		this.borders = new BABYLON.TransformNode('borders', this.sphere.getScene());
 
 		this.addColorVertexData();
 		this.makeColocatedVertMap();
@@ -128,10 +126,12 @@ export class Planet {
 
 	public show() {
 		this.sphere.setEnabled(true);
+		this.borders.setEnabled(true);
 	}
 
 	public hide() {
 		this.sphere.setEnabled(false);
+		this.borders.setEnabled(false);
 	}
 
 	// The IcoSphere maker doesn't include color vertex data, so this adds that
@@ -679,17 +679,8 @@ export class Planet {
 	}
 
 	public createRegions() {
-		let planet = this;
 		let regions = createRegions(this.faces, this.tfSettings);
 		this.regions = claimIslands(this, regions, this.tfSettings);
-
-		// temporary
-		let colorNames = Object.keys(planet.colors).filter((k) => k.startsWith('p'));
-
-		this.regions.forEach((r) => {
-			let colorName: string = rand.pick(colorNames)[0];
-			r.setColor(<number[]> planet.colors[colorName]);
-		});
 	}
 
 	public smoothPerimeters() {
@@ -727,6 +718,7 @@ export class Planet {
 	}
 
 	public createBorders() {
+		const planet = this;
 		const scene = this.sphere.getScene();
 		const positionData = this.sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 		let borderElevation = 1.002;
@@ -781,8 +773,10 @@ export class Planet {
 				}, scene);
 				lineSystem.color = new BABYLON.Color3(0, 0, 0);
 				lineSystem.enableEdgesRendering();
-				lineSystem.edgesWidth = 1.0;
+				lineSystem.edgesWidth = 1.2;
 				lineSystem.edgesColor = new BABYLON.Color4(0, 0, 0, 0.05);
+				lineSystem.parent = planet.borders;
+				lineSystem.isPickable = false;
 				r.borderMesh = lineSystem;
 			}
 		});
