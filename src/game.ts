@@ -92,9 +92,13 @@ export class Game {
 	}
 
 	private hideActionButtons() {
-		document.getElementById('chooseAction').className = '';
+		let ca = document.getElementById('chooseAction');
+		ca.className = '';
+		ca.style.top = -1000 + 'px';
+		ca.style.left = -1000 + 'px';
 		document.getElementById('actionEventCatcher').style.display = 'none';
 		this.showingActionButtons = false;
+		this.unhighlightRegion();
 	}
 
 	private showActionButtons() {
