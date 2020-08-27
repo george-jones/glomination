@@ -20,11 +20,128 @@
 			height: 100%;
 			touch-action: none;
 		}
+
+		#countryInfo {
+			position: fixed;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			min-width: 325px;
+			background-color: rgba(50,50,50,0.5);
+			color: #ccc;
+			padding: 10px;
+			border-right: 8px solid rgb(50,50,50,0.25);
+		}
+
+		#countryName {
+			font-size: 32px;
+			border-bottom: 1px solid rgb(50, 50, 50, 0.5);
+		}
+
+		#actionInfo {
+			position: fixed;
+			right: 0;
+			top: 0;
+			bottom: 0;
+			min-width: 325px;
+			background-color: rgba(50,50,50,0.5);
+			color: #ddd;
+			padding: 10px;
+			font-size: 32px;
+			border-left: 8px solid rgb(50,50,50,0.25);
+		}
+
+		#actionEventCatcher {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			display: none;
+		}
+
+		#chooseAction {
+			position: absolute;
+			left: 1000px;
+			top: 300px;
+			opacity: 0;
+			transition: opacity 0.1s;
+		}
+
+		#chooseAction.show {
+			opacity: 1.0;
+		}
+
+		#chooseAction div {
+			width: 48px;
+			height: 48px;
+			border-radius: 28px;
+			border: 4px solid rgba(0, 0, 0, 0.25);
+			text-align: center;
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+		}
+
+		#chooseAction div:hover {
+			border: 4px solid rgba(255, 255, 255, 1.0);
+		}
+
+		#attackButton {
+			background-color: #900;
+			position: absolute;
+			top: -58px;
+			left: -24px;
+		}
+
+		#settleButton {
+			background-color: #090;
+			position: absolute;
+			top: 0px;
+			left: -54px;
+		}
+
+		#moveButton {
+			background-color: #aa0;
+			position: absolute;
+			top: 0px;
+			left: 8px;
+		}
+
+		#chooseAction div img {
+			position: relative;
+		}
+
+		#attackButton img {
+			top: 8px;
+		}
+
+		#settleButton img {
+			top: 12px;
+		}
+
+		#moveButton img {
+			top: 10px;
+		}
 	</style>
 </head>
 
 <body>
 	<canvas id="render-canvas"></canvas>
+	<div id="actionInfo"></div>
+	<div id="countryInfo">
+		<div id="countryName"></div>
+	</div>
+	<div id="actionEventCatcher"></div>
+	<div id="chooseAction">
+		<div id="attackButton" title="Attack">
+			<img src="img/blade.png" />
+		</div>
+		<div id="settleButton" title="Settle">
+			<img src="img/population.png"> 
+		</div>
+		<div id="moveButton" title="Move Armies">
+			<img src="img/shield.png" />
+		</div>
+	</div>
 	<script>
 		require('./app/renderer.js');
 	</script>

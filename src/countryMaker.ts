@@ -440,3 +440,19 @@ export function claimIslands (planet: Planet, regionsIn: Region[], tfSettings: T
 
 	return regions;
 };
+
+export function randomName(): string {
+	let suffixes = [ 'iland', 'ia', 'ica', 'ary', 'istan', 'an', 'iway', 'ar', 'ey', 'en', 'aguay',
+		'ola', 'ina', 'us', 'as', 'on' ];
+	let cons = [ 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'qu', 'r', 's', 't', 'th', 'v', 'w', 'x', 'y', 'z' ];
+	let vows = [ 'a', 'e', 'i', 'o', 'u' ];
+	let name: string = rand.pick(cons)[0] + rand.pick(suffixes)[0];
+	let moreLettersChance = 0.6;
+
+	while (name.length < 12 && (name.length < 3 || Math.random() <= moreLettersChance)) {
+		name = rand.pick(cons)[0] + rand.pick(vows)[0] + name;
+	}
+
+	// capitalize
+	return name.charAt(0).toUpperCase() + name.slice(1);
+};

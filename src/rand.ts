@@ -38,8 +38,8 @@ export function pickN (a:any[], n:number) {
 		picked = pick(a);
 		for (j=0; j < ret.length; j++) {
 			if (ret[j] == picked[0]) {
-				dupe = true;					
-				break;					
+				dupe = true;
+				break;
 			}
 		}
 		if (dupe) {
@@ -100,6 +100,35 @@ export function weightedListPicker (a:{ weight: number }[]) : () => any {
 };
 
 // returns a number between low and high
-export function rangeInt (low:number, high:number) {
+export function rangeInt (low:number, high:number): number {
 	return low + Math.floor((1 + high - low) * Math.random());
+};
+
+// https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+export function gaussian (): number {
+	var u = 0, v = 0;
+	while (u === 0) {
+		u = Math.random(); //Converting [0,1) to (0,1)
+	}
+	while (v === 0) {
+		v = Math.random();
+	}
+	return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+}
+
+export function gaussianRange (low: number, high: number): number {
+	var mid = (low + high) / 2;
+	var s = (high - low) / 6; // force range to fit w/in +/-3 stdev's
+	var g = gaussian();
+
+	g *= s;
+	g += mid;
+
+	if (g < low) {
+		return low;
+	} else if (g > high) {
+		return high;
+	} else {
+		return g;
+	}
 };

@@ -2,7 +2,7 @@ import * as BABYLON from 'babylonjs';
 
 import * as rand from './rand';
 import { Planet, Face } from './planet';
-import { Region } from './countryMaker';
+import { Region, randomName } from './countryMaker';
 import * as cfg from './gameConfig';
 
 export interface RegionGameData {
@@ -18,6 +18,7 @@ export class Game {
 	private mouseDownFaceId: number;
 	private config: cfg.Config;
 	private players: cfg.Player[];
+	private showingActionButtons: boolean;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -31,24 +32,37 @@ export class Game {
 
 		this.planet.show();
 		let game = this;
+		this.showingActionButtons = false;
 
 		window.addEventListener('pointerdown', () => {
+			if (this.showingActionButtons) {
+				return;
+			}
 			game.mouseDown();
 		});
 
 		window.addEventListener('pointerup', () => {
+			if (this.showingActionButtons) {
+				return;
+			}
 			this.mouseUp();
 		});
 
 		window.addEventListener('pointermove', (evt) => {
-			if (evt.buttons == 0) {
-				this.highlightRegion();
+			if (this.showingActionButtons) {
+				return;
 			}
+			if (evt.buttons == 0) {
+				this.highlightRegion(false);
+			}
+		});
+
+		document.getElementById('actionEventCatcher').addEventListener('click', () => {
+			this.hideActionButtons();
 		});
 	}
 
 	private mouseDown() {
-		this.unhighlightRegion();
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			this.mouseDownFaceId = pickResult.faceId;
@@ -58,7 +72,7 @@ export class Game {
 	private mouseUp() {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		if (pickResult.pickedMesh == this.planet.sphere && this.mouseDownFaceId == pickResult.faceId) {
-			this.highlightRegion();
+			this.highlightRegion(true);
 		}
 	}
 
@@ -66,17 +80,37 @@ export class Game {
 		this.pickRegion(null);
 	}
 
-	private highlightRegion() {
+	private highlightRegion(click: boolean) {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
+			if (click) {
+				this.showActionButtons();
+			}
 			this.pickRegion(region);
 		}
+	}
+
+	private hideActionButtons() {
+		document.getElementById('chooseAction').className = '';
+		document.getElementById('actionEventCatcher').style.display = 'none';
+		this.showingActionButtons = false;
+	}
+
+	private showActionButtons() {
+		var btn = document.getElementById('chooseAction');
+		btn.style.left = this.scene.pointerX + 'px';
+		btn.style.top = this.scene.pointerY + 'px';
+		btn.className = 'show';
+
+		document.getElementById('actionEventCatcher').style.display = 'block';
+		this.showingActionButtons = true;
 	}
 
 	private assignRegions() {
 		let players = this.players;
 		let regionsBySize = this.regions.slice();
+		let names = new Set();
 
 		// largest to smallest
 		regionsBySize.sort((a: Region, b: Region): number => {
@@ -86,6 +120,13 @@ export class Game {
 		regionsBySize.forEach((r, idx) => {
 			let gd: RegionGameData = { };
 
+			while (true) {
+				gd.name = randomName();
+				if (!names.has(gd.name)) {
+					names.add(gd.name);
+					break;
+				}
+			}
 			gd.owner = players[idx % players.length];
 
 			r.gameData = gd;
@@ -98,8 +139,9 @@ export class Game {
 			pr.setColor(pr.gameData.owner.color);
 		}
 
-		if (region) {
+		if (region && region != pr) {
 			region.setColor(region.gameData.owner.highlightColor);
+			this.showCountryInfo(region.gameData);
 		}
 		this.pickedRegion = region;
 		
@@ -112,5 +154,9 @@ export class Game {
 		});
 
 		this.planet.reColorAll();
+	}
+
+	private showCountryInfo(gd: RegionGameData) {
+		window.document.getElementById('countryName').innerText = gd.name;
 	}
 }

@@ -15,7 +15,7 @@ export class Face {
 	connectedFaces: Face[];
 	midPoint: BABYLON.Vector3;
 	cellType: string;
-	region: any;
+	region: Region;
 	dripGroup: Face[];
 
 	constructor(index: number, vertices: number[], color: number[], positions: BABYLON.FloatArray) {
@@ -112,7 +112,11 @@ export class Planet {
 
 	public show() {
 		this.sphere.setEnabled(true);
-		this.borders.setEnabled(true);
+		// force the borders to appear after the sphere.
+		// without this, they tend to show up first, which is weird.
+		window.setTimeout(() => {
+			this.borders.setEnabled(true);
+		}, 100);
 	}
 
 	public hide() {
