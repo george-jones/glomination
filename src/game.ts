@@ -84,7 +84,7 @@ export class Game {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
-			if (click) {
+			if (click && region) {
 				this.showActionButtons();
 			}
 			this.pickRegion(region);
