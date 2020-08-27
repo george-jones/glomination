@@ -2,6 +2,8 @@ import * as BABYLON from 'babylonjs';
 
 import { Planet } from './planet';
 import { Game } from './game';
+import * as cfg from './gameConfig';
+
 
 export default class Renderer {
 	private canvas: HTMLCanvasElement;
@@ -79,7 +81,7 @@ export default class Renderer {
 		bgPlane.position.set(0, 0, 50);
 
 		this.doTerraform(-1, () => {
-			this.game = new Game(this.planet, this.scene);
+			this.startGame();
 		});
 	}
 
@@ -94,6 +96,37 @@ export default class Renderer {
 		window.addEventListener('resize', () => {
 			engine.resize();
 		});
+	}
+
+	private startGame() {
+		let colors: number[][] = [
+			[ 0.17, 0.22, 0.60 ], // blue
+			[ 0.45, 0.45, 0.45 ], // grey
+			[ 0.73, 0.13, 0.13 ], // red
+			[ 0.20, 0.60, 0.10 ], // green
+			[ 0.50, 0.25, 0.57 ], // purple
+			[ 0.85, 0.85, 0.10 ]  // yellow
+		];
+	
+		let pickedColors: number[][] = [
+			[ 0.48, 0.47, 0.90 ], // blue
+			[ 0.70, 0.70, 0.70 ], // grey
+			[ 0.95, 0.33, 0.33 ], // red
+			[ 0.30, 0.85, 0.25 ], // green
+			[ 0.91, 0.40, 0.98 ], // purple
+			[ 1.00, 1.00, 0.40 ]  // yellow
+		];
+
+		let players: cfg.Player[] = [
+			{ npc: false, color: colors[0], highlightColor: pickedColors[0] },
+			{ npc: true, color: colors[1], highlightColor: pickedColors[1] },
+			{ npc: true, color: colors[2], highlightColor: pickedColors[2] },
+			{ npc: true, color: colors[3], highlightColor: pickedColors[3] },
+			{ npc: true, color: colors[4], highlightColor: pickedColors[4] },
+			{ npc: true, color: colors[5], highlightColor: pickedColors[5] }
+		];
+
+		this.game = new Game(this.planet, this.scene, players);
 	}
 
 	private doTerraform(stepNum: number, finito: Function) {

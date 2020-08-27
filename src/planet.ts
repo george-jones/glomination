@@ -36,20 +36,6 @@ export class Face {
 	}
 }
 
-interface PlannedQuad {
-	vert1: number;
-	vert2: number;
-	oppositeVert: number;
-	prevEdgeHasSibling: boolean;
-	nextEdgeHasSibling: boolean;
-}
-
-interface PlannedTri {
-	tipVert: number;
-	vertA: number;
-	vertB: number;
-}
-
 interface ColorChanger {
 	(colorData : BABYLON.FloatArray) : void;
 }

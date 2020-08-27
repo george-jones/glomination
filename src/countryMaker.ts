@@ -1,6 +1,7 @@
 import * as BABYLON from 'babylonjs';
 import * as rand from './rand';
 import { Planet, Face, TerraformSettings } from './planet';
+import { RegionGameData } from './game';
 
 export class Region {
 	public faces: Face[];
@@ -12,7 +13,7 @@ export class Region {
 	startingPoint: BABYLON.Vector3;
 	borderFaces: Face[];
 	color: number[];
-	gameData = { }; // a place for higher layer code to store game-specific data for this region
+	gameData: RegionGameData; // a place for higher layer code to store game-specific data for this region
 	borderMesh: BABYLON.Mesh;
 
 	constructor () {
