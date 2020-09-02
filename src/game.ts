@@ -189,15 +189,31 @@ export class Game {
 			return (b.gameData.maximumPopulation - a.gameData.maximumPopulation);
 		});
 
-		regionsBySize.forEach((r, idx) => {
+		let findSmallestMaxPopPlayer = ():number => {
+			let ownerNum = -1;
+			let minPop = 0;
+
+			totalMaxPops.forEach((mpop, idx) => {
+				if (idx == 0 || mpop < minPop) {
+					ownerNum = idx;
+					minPop = mpop;
+				}
+			});
+
+			return ownerNum;
+		}
+
+		regionsBySize.forEach((r) => {
 			let d: RegionGameData = r.gameData;
 			let ownerNum: number;
 
-			ownerNum = idx % players.length;
+			// find owner w/ smallest max pop
+			ownerNum = findSmallestMaxPopPlayer();
 			d.owner = players[ownerNum];
-
 			totalMaxPops[ownerNum] += d.maximumPopulation;
 		});
+
+		console.log(totalMaxPops);
 
 		// make every player start w/ the same initial total population by multiplying
 		// initial populations by a factor that depends on the totals.
@@ -212,6 +228,7 @@ export class Game {
 		players.forEach((p, i) => {
 			p.startingPopulationMultiplier = this.config.population.initialMax * minTotalPop / totalMaxPops[i];
 			p.totalPop = 0;
+			console.log(p.startingPopulationMultiplier);
 		});
 
 		regionsBySize.forEach((r) => {
