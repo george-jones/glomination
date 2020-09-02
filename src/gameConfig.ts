@@ -9,7 +9,6 @@ interface Population {
 	highBaseDensity: number;
 	polar: number;
 	equatorial: number;
-	techMultiplier: number;
 	disloyalGrowth: number;
 	loyalGrowth: number;
 	initialMax: number;
@@ -43,7 +42,6 @@ export function getConfig () : Config {
 			highBaseDensity: 270,
 			polar: 0.15,
 			equatorial: 1.0,
-			techMultiplier: 0.01,
 			disloyalGrowth: 0.10,
 			loyalGrowth: 1.0,
 			initialMax: 0.4,

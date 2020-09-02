@@ -33,6 +33,14 @@
 			border-right: 8px solid rgb(50,50,50,0.25);
 		}
 
+		#countryInfo .guts {
+			display: none;
+		}
+
+		#countryInfo.show .guts {
+			display: block;
+		}
+
 		#countryName {
 			font-size: 32px;
 			border-bottom: 1px solid rgb(50, 50, 50, 0.5);
@@ -139,16 +147,81 @@
 		#moveButton img {
 			top: 9px;
 		}
+
+		#countryPopulationBar {
+			height: 20px;
+			width: 240px;
+		}
+
+		.bar {
+			border: 1px solid #777;
+			border-radius: 8px;
+			width: 240px;
+			height: 16px;
+		}
+
+		.bar div {
+			height: 16px;
+			display: inline-block;
+		}
+
+		.bar div:first-of-type {
+			border-top-left-radius: 6px;
+			border-bottom-left-radius: 6px;
+		}
+
+		.bar div:last-of-type {
+			border-top-right-radius: 6px;
+			border-bottom-right-radius: 6px;
+		}
+
+		.ib {
+			display: inline-block;
+			margin-left: 10px;
+			vertical-align: super;
+		}
+
+		.cd {
+			margin-top: 10px;
+			margin-bottom: 10px;
+		}
 	</style>
 </head>
 
 <body>
 	<canvas id="render-canvas"></canvas>
-	<div id="actionInfo"></div>
 	<div id="countryInfo">
-		<div id="countryName"></div>
-		<div id="countrySize"></div>
+		<div class="guts">
+			<div class="cd" id="countryName"></div>
+			<!--div id="countrySize"></div-->
+			<div class="cd">
+				<img src="img/population.png" title="Population" style="vertical-align: top" />
+				<div class="ib">
+					<div id="population" class="bar">
+						<div id="populationFill" style="background-color: #999"></div>
+					</div>
+					<div id="countryPopulation"></div>
+				</div>
+			</div>
+			<div class="cd">
+				<img src="img/blade.png" title="Military" />
+				<div class="ib" id="countryMilitary"></div>
+			</div>
+			<div class="cd">
+				<img src="img/loyalty.png" title="Loyalty" />
+				<div id="loyalty" class="ib bar">
+					<div
+						style="background-color: blue"></div><div
+						style="background-color: green"></div><div
+						style="background-color: yellow"></div><div
+						style="background-color: grey"></div><div
+						style="background-color: red"></div><div
+						style="background-color: purple"></div>
+				</div>
+			</div>
+		</div>
 	</div>
+	<div id="actionInfo"></div>
 	<div id="actionEventCatcher"></div>
 	<div id="chooseAction">
 		<div id="actionUnderCircle"></div>
