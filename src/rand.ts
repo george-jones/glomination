@@ -104,6 +104,11 @@ export function rangeInt (low:number, high:number): number {
 	return low + Math.floor((1 + high - low) * Math.random());
 };
 
+// Get a number from [low,high)
+export function range (low:number, high:number): number {
+	return low + (high-low) * Math.random();
+};
+
 // https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
 export function gaussian (): number {
 	var u = 0, v = 0;

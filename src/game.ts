@@ -5,9 +5,29 @@ import { Planet, Face } from './planet';
 import { Region, randomName } from './countryMaker';
 import * as cfg from './gameConfig';
 
+interface Player {
+	npc: boolean;
+	color: number[];
+	highlightColor: number[];
+	techLevel: number;
+	startingPopulationMultiplier: number;
+	totalPop: number;
+}
+
 export interface RegionGameData {
-	owner?: cfg.Player;
+	owner?: Player;
 	name?: string;
+	size?: number;
+	maximumPopulation?: number;
+	turnsOwned?: number;
+	turnsSinceWar?: number;
+	population?: number;
+	defenseBonus?: number;
+	baseDensity?: number;
+	techBonus?: number;
+	productionBonus?: number;
+	militarySize?: number;
+	loyalty?: number[];
 }
 
 export class Game {
@@ -17,15 +37,16 @@ export class Game {
 	private pickedRegion: Region;
 	private mouseDownFaceId: number;
 	private config: cfg.Config;
-	private players: cfg.Player[];
+	private players: Player[];
 	private showingActionButtons: boolean;
+	private currentPlayer: number;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
 		this.scene = scene;
 		this.regions = this.planet.regions;
 		this.config = cfg.getConfig();
-		this.players = players;
+		this.players = players.map(this.makePlayer);
 
 		this.assignRegions();
 		this.colorRegions();
@@ -60,6 +81,17 @@ export class Game {
 		document.getElementById('actionEventCatcher').addEventListener('click', () => {
 			this.hideActionButtons();
 		});
+	}
+
+	private makePlayer(cp:cfg.Player): Player {
+		return {
+			npc: cp.npc,
+			color: cp.color,
+			highlightColor: cp.highlightColor,
+			techLevel: 0,
+			totalPop: 0,
+			startingPopulationMultiplier: 0
+		}
 	}
 
 	private mouseDown() {
@@ -111,29 +143,109 @@ export class Game {
 		this.showingActionButtons = true;
 	}
 
+	private lerpProportion (proportion: number, low: number, high: number): number {
+		return low + proportion * (high - low);
+	};
+
+	private regionCalcMaxPop (region: Region) {
+		var d = region.gameData;
+
+		d.maximumPopulation = d.size * d.baseDensity *
+			this.lerpProportion(1 - Math.abs(region.midPoint.y), this.config.population.polar, this.config.population.equatorial);
+		
+		if (d.owner) {
+			d.maximumPopulation *= (1 + d.owner.techLevel * this.config.population.techMultiplier);
+		}
+
+		d.maximumPopulation = Math.floor(d.maximumPopulation);
+	};
+
 	private assignRegions() {
 		let players = this.players;
 		let regionsBySize = this.regions.slice();
 		let names = new Set();
+		let totalMaxPops: number[] = [ ];
 
-		// largest to smallest
-		regionsBySize.sort((a: Region, b: Region): number => {
-			return (b.faces.length - a.faces.length);
-		});
+		for (let i=0; i < players.length; i++) {
+			totalMaxPops[i] = 0;
+		}
 
-		regionsBySize.forEach((r, idx) => {
-			let gd: RegionGameData = { };
+		this.regions.forEach(r => {
+			let d: RegionGameData = { };
+
+			r.gameData = d;
+
+			d.size = r.faces.length * 24906;
+			d.turnsOwned = 0;
+			d.turnsSinceWar = -1;
+			d.population = 0;
+			d.defenseBonus = 0;
+			d.baseDensity = rand.range(this.config.population.lowBaseDensity, this.config.population.highBaseDensity);
+			d.techBonus = 0;
+			d.productionBonus = 0;
+			d.militarySize = 0;
+			d.loyalty = [ ];
+			this.regionCalcMaxPop(r);
 
 			while (true) {
-				gd.name = randomName();
-				if (!names.has(gd.name)) {
-					names.add(gd.name);
+				d.name = randomName();
+				if (!names.has(d.name)) {
+					names.add(d.name);
 					break;
 				}
 			}
-			gd.owner = players[idx % players.length];
+		});
 
-			r.gameData = gd;
+		// largest to smallest
+		regionsBySize.sort((a: Region, b: Region): number => {
+			return (b.gameData.maximumPopulation - a.gameData.maximumPopulation);
+		});
+
+		regionsBySize.forEach((r, idx) => {
+			let d: RegionGameData = r.gameData;
+			let ownerNum: number;
+
+			ownerNum = idx % players.length;
+			d.owner = players[ownerNum];
+
+			totalMaxPops[ownerNum] += d.maximumPopulation;
+		});
+
+		// make every player start w/ the same initial total population by multiplying
+		// initial populations by a factor that depends on the totals.
+		let minTotalPop = -1;
+
+		totalMaxPops.forEach(function (mp) {
+			if (minTotalPop == -1 || mp < minTotalPop) {
+				minTotalPop = mp;
+			}
+		});
+
+		players.forEach((p, i) => {
+			p.startingPopulationMultiplier = this.config.population.initialMax * minTotalPop / totalMaxPops[i];
+			p.totalPop = 0;
+		});
+
+		regionsBySize.forEach((r) => {
+			let d = r.gameData;
+
+			d.population = Math.floor(d.maximumPopulation * d.owner.startingPopulationMultiplier);
+			d.owner.totalPop += d.population;
+			
+			// initialize loyalty numbers
+			let n = players.length;
+			for (let i=0; i < n; i++) {
+				if (players[i] == d.owner) {
+					d.loyalty[i] = this.config.loyalty.ownerInitial;
+				} else {
+					d.loyalty[i] = this.config.loyalty.othersInitial / (n-1);
+				}
+			}
+
+			d.techBonus = rand.gaussianRange(0, 1);
+			d.productionBonus = rand.gaussianRange(0, 1);
+			d.militarySize = Math.floor(this.config.population.initialMilitary * d.population);
+			r.gameData = d;
 		});
 	}
 
@@ -153,7 +265,7 @@ export class Game {
 	}
 
 	private colorRegions() {
-		this.regions.forEach((r, idx) => {
+		this.regions.forEach((r) => {
 			r.setColor(r.gameData.owner.color);
 		});
 
@@ -161,6 +273,7 @@ export class Game {
 	}
 
 	private showCountryInfo(gd: RegionGameData) {
-		window.document.getElementById('countryName').innerText = gd.name;
+		document.getElementById('countryName').innerText = gd.name;
+		document.getElementById('countrySize').innerText = gd.size.toLocaleString(undefined) + ' km²';
 	}
 }

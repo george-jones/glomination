@@ -68,7 +68,7 @@ export class Planet {
 	private indices: BABYLON.IndicesArray;
 
 	// a map of vertex numbers that correspond to the same physical locations
-	private colocatedVertMap: Array<Array<number>>;
+	private colocatedVertMap: number[][];
 
 	// a map of base vertex numbers to faces that contain them
 	private vertFaceMap: Map<number, Face[]>;
@@ -77,7 +77,7 @@ export class Planet {
 	// And what do I mean by "base" vertex numbers?  The are the ones that are first in their colocatedVertMap array.
 	// So if vertices 0, 3, 6, 9, 12 are all actually the same point in space, vertex 0 is the base vertex number.
 	//private vertNeighbors: Array<Array<number>>;
-	public faces: Array<Face>;
+	public faces: Face[];
 
 	private tfSettings: TerraformSettings;
 
@@ -102,7 +102,6 @@ export class Planet {
 		this.jumbleVertices();
 		this.renormal();
 		this.makeFaces();
-	
 		//const positions = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
 		//moveVert(positions, this.colocatedVertMap, 0, new BABYLON.Vector3(-1, 1, 1));
