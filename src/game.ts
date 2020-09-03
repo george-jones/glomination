@@ -4,6 +4,7 @@ import * as rand from './rand';
 import { Planet, Face } from './planet';
 import { Region, randomName } from './countryMaker';
 import * as cfg from './gameConfig';
+import * as util from './util';
 
 let BAR_WIDTH = 240;
 
@@ -281,15 +282,37 @@ export class Game {
 
 	private showCountryInfo(d: RegionGameData) {
 		let g = (id:string) => document.getElementById(id);
+		let players = this.players;
 
 		g('countryInfo').className = 'show';
-		g('countryName').innerText = d.name;
+		let cn = g('countryName');
+		cn.innerText = d.name;
+		cn.style.backgroundColor = util.colorArrayToRGB(d.owner.color);
+		cn.style.color = util.colorArrayToForegroundRGB(d.owner.color);
 		g('countryPopulation').innerText = this.numstr(d.population);
 		g('countryMilitary').innerText = this.numstr(d.militarySize);
 		g('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
  
+		let popBar = g('countryPopulationBar'); 
+		util.domRemoveChildren(popBar); 
+	
+		let totalLoyalty = d.loyalty.reduce((prev, curr) => prev+curr, 0);
+		let sortedLoyalty = d.loyalty.map((val, idx) => {
+			return { val: val, player: players[idx] }
+		}).sort((a, b) => { return b.val - a.val });
+
+		sortedLoyalty.forEach((o) => {
+			let proportion = o.val / totalLoyalty;
+			let el;
+			if (proportion > 0) {
+				let width = Math.round(BAR_WIDTH * proportion);
+				el = document.createElement('div');
+				el.style.backgroundColor = util.colorArrayToRGB(o.player.color);
+				el.style.width = width + 'px';
+				popBar.appendChild(el);
+			}
+		});
 		/*
-		let popBar = g('countryPopulationBar');
 		popBar.setAttribute('value', '' + d.population);
 		popBar.setAttribute('max', '' + d.maximumPopulation); 
 		*/
