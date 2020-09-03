@@ -46,6 +46,7 @@
 			border-bottom: 1px solid rgb(50, 50, 50, 0.5);
 			padding-left: 6px;
 			border-radius: 6px;
+			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
 		}
 
 		#actionInfo {
@@ -159,6 +160,7 @@
 			border-radius: 8px;
 			width: 240px;
 			height: 16px;
+			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
 		}
 
 		.bar div {
@@ -194,7 +196,6 @@
 	<div id="countryInfo">
 		<div class="guts">
 			<div class="cd" id="countryName"></div>
-			<!--div id="countrySize"></div-->
 			<div class="cd">
 				<img src="img/population.png" title="Population" style="vertical-align: top" />
 				<div class="ib">
@@ -205,12 +206,12 @@
 				</div>
 			</div>
 			<div class="cd">
-				<img src="img/blade.png" title="Military" />
-				<div class="ib" id="countryMilitary"></div>
-			</div>
-			<div class="cd">
 				<img src="img/loyalty.png" title="Loyalty" />
 				<div id="countryPopulationBar" class="ib bar"></div>
+			</div>
+			<div class="cd">
+				<img src="img/blade.png" title="Military" />
+				<div class="ib" id="countryMilitary"></div>
 			</div>
 		</div>
 	</div>

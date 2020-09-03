@@ -288,7 +288,7 @@ export class Game {
 		let cn = g('countryName');
 		cn.innerText = d.name;
 		cn.style.backgroundColor = util.colorArrayToRGB(d.owner.color);
-		cn.style.color = util.colorArrayToForegroundRGB(d.owner.color);
+		cn.style.color = util.colorArrayToForegroundRGB(d.owner.color); 
 		g('countryPopulation').innerText = this.numstr(d.population);
 		g('countryMilitary').innerText = this.numstr(d.militarySize);
 		g('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
@@ -312,9 +312,5 @@ export class Game {
 				popBar.appendChild(el);
 			}
 		});
-		/*
-		popBar.setAttribute('value', '' + d.population);
-		popBar.setAttribute('max', '' + d.maximumPopulation); 
-		*/
 	}
 }
