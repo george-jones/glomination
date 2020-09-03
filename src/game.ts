@@ -39,6 +39,7 @@ export class Game {
 	private players: Player[];
 	private showingActionButtons: boolean;
 	private currentPlayer: number;
+	private pickedAction: string;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -46,6 +47,7 @@ export class Game {
 		this.regions = this.planet.regions;
 		this.config = cfg.getConfig();
 		this.players = players.map(this.makePlayer);
+		this.currentPlayer = 0;
 
 		this.assignRegions();
 		this.colorRegions();
@@ -78,6 +80,24 @@ export class Game {
 		});
 
 		document.getElementById('actionEventCatcher').addEventListener('click', () => {
+			this.hideActionButtons();
+		});
+
+		document.getElementById('attackButton').addEventListener('click', () => {
+			console.log('attack');
+			this.pickedAction = 'attack';
+			this.hideActionButtons();
+		});
+
+		document.getElementById('settleButton').addEventListener('click', () => {
+			console.log('settle');
+			this.pickedAction = 'settle';
+			this.hideActionButtons();
+		});
+
+		document.getElementById('moveButton').addEventListener('click', () => {
+			console.log('move');
+			this.pickedAction = 'move';
 			this.hideActionButtons();
 		});
 	}
@@ -114,7 +134,7 @@ export class Game {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
-			if (click && region) {
+			if (click && region && region.gameData.owner == this.players[this.currentPlayer]) {
 				this.showActionButtons();
 			}
 			this.pickRegion(region);
