@@ -13,8 +13,13 @@ export function colorArrayToForegroundRGB(color: number[]): string {
 	}
 }
 
-export function domRemoveChildren(ele: HTMLElement) {
+export function domRemoveChildren(ele: Element) {
 	while (ele.firstChild) {
 		ele.removeChild(ele.lastChild);
 	}
+}
+
+export function elementColorize(ele: HTMLElement, color: number[]) {
+	ele.style.backgroundColor = colorArrayToRGB(color);
+	ele.style.color = colorArrayToForegroundRGB(color);
 }

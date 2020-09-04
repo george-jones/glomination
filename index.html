@@ -43,10 +43,10 @@
 
 		#countryName {
 			font-size: 32px;
-			border-bottom: 1px solid rgb(50, 50, 50, 0.5);
 			padding-left: 6px;
 			border-radius: 6px;
 			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
+			margin-bottom: 16px;
 		}
 
 		#actionInfo {
@@ -60,6 +60,7 @@
 			padding: 10px;
 			font-size: 32px;
 			border-left: 8px solid rgb(50,50,50,0.25);
+			overflow-y: auto;
 		}
 
 		#actionEventCatcher {
@@ -75,10 +76,6 @@
 			position: absolute;
 			left: -1000px;
 			top: -1000px;
-		}
-
-		#chooseAction.show {
-			
 		}
 
 		#chooseAction div {
@@ -188,6 +185,49 @@
 			margin-top: 10px;
 			margin-bottom: 10px;
 		}
+
+		#actionInfo .pa {
+			background-color: rgba(0,0,0,0.5);
+			padding: 6px 6px 0 6px;
+			border-radius: 6px;
+			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
+		}
+
+		#actionInfo .pa div {
+			display: inline-block;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			text-overflow: ellipsis;
+			font-size: 24px;
+			height: 32px;
+			padding: 7px 3px 0 6px;
+			border-radius: 3px;
+			width: 118px;
+			box-shadow: 1px 1px 4px 1px rgba(0,0,0,0.25);
+		}
+
+		#actionInfo .pa img {
+			width: 32px;
+			height: 32px;
+			vertical-align: top;
+			margin: 0 9px 0 9px;
+			padding: 4px;
+			border-radius: 4px;
+		}
+
+		#actionInfo .pa img.attack {
+			background-color: #900;
+		}
+
+		#actionInfo .pa img.settle {
+			background-color: #090;
+		}
+
+		#actionInfo .pa img.move {
+			background-color: #aa0;
+		}
+
 	</style>
 </head>
 
@@ -215,7 +255,8 @@
 			</div>
 		</div>
 	</div>
-	<div id="actionInfo"></div>
+	<div id="actionInfo">
+	</div>
 	<div id="actionEventCatcher"></div>
 	<div id="chooseAction">
 		<div id="actionUnderCircle"></div>

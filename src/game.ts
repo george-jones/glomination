@@ -8,12 +8,21 @@ import * as util from './util';
 
 let BAR_WIDTH = 240;
 
+interface PlannedAction {
+	action: string;
+	source: Region;
+	target?: Region;
+	num?: number;
+	ele?: HTMLElement;
+}
+
 interface Player {
 	npc: boolean;
 	color: number[];
 	highlightColor: number[];
 	startingPopulationMultiplier: number;
 	totalPop: number;
+	plannedActions: PlannedAction[];
 }
 
 export interface RegionGameData {
@@ -39,7 +48,8 @@ export class Game {
 	private players: Player[];
 	private showingActionButtons: boolean;
 	private currentPlayer: number;
-	private pickedAction: string;
+	private startedAction: PlannedAction;
+	private sourceRegion: Region;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -84,21 +94,15 @@ export class Game {
 		});
 
 		document.getElementById('attackButton').addEventListener('click', () => {
-			console.log('attack');
-			this.pickedAction = 'attack';
-			this.hideActionButtons();
+			this.actionStart('attack');
 		});
 
 		document.getElementById('settleButton').addEventListener('click', () => {
-			console.log('settle');
-			this.pickedAction = 'settle';
-			this.hideActionButtons();
+			this.actionStart('settle');
 		});
 
 		document.getElementById('moveButton').addEventListener('click', () => {
-			console.log('move');
-			this.pickedAction = 'move';
-			this.hideActionButtons();
+			this.actionStart('move');
 		});
 	}
 
@@ -108,7 +112,8 @@ export class Game {
 			color: cp.color,
 			highlightColor: cp.highlightColor,
 			totalPop: 0,
-			startingPopulationMultiplier: 0
+			startingPopulationMultiplier: 0,
+			plannedActions: []
 		}
 	}
 
@@ -132,12 +137,96 @@ export class Game {
 
 	private highlightRegion(click: boolean) {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
+		let curPlayer = this.players[this.currentPlayer];
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
-			if (click && region && region.gameData.owner == this.players[this.currentPlayer]) {
-				this.showActionButtons();
+			if (click) {
+				if (region) {
+					if (this.startedAction) {
+						if (this.startedAction.action === 'attack') {
+							if (region.gameData.owner == curPlayer) {
+								this.undoAction();
+							} else {
+								this.targetChosen(region);
+							}
+						} else if (this.startedAction.action === 'move' || this.startedAction.action === 'settle') {
+							if (region.gameData.owner == curPlayer) {
+								this.targetChosen(region);
+							} else {
+								this.undoAction();
+							}
+						} else {
+							// shouldn't happen
+							this.undoAction();
+						}
+					} else if (region.gameData.owner == curPlayer) {
+						this.sourceRegion = region;
+						this.showActionButtons();
+					}
+				} else {
+					this.undoAction();
+				}
 			}
 			this.pickRegion(region);
+		}
+	}
+
+	private actionStart(action: string) {
+		let pa: PlannedAction = {
+			action: action,
+			source: this.sourceRegion
+		};
+		this.startedAction = pa;
+		this.hideActionButtons();
+
+		let paDiv = document.createElement('div');
+		paDiv.className = 'pa';
+
+		pa.ele = paDiv;
+
+		let sourceDiv = document.createElement('div');
+		sourceDiv.className = 'source';
+		util.elementColorize(sourceDiv, pa.source.gameData.owner.color);
+		sourceDiv.innerText = pa.source.gameData.name;
+
+		paDiv.appendChild(sourceDiv);
+
+		let imgFile;
+		if (action == 'attack') {
+			imgFile = 'blade.png';
+		} else if (action == 'settle') {
+			imgFile = 'population.png';
+		} else if (action == 'move') {
+			imgFile = 'shield.png';
+		}
+
+		let img = document.createElement('img');
+		img.src = 'img/' + imgFile;
+		img.className = action; 
+		paDiv.appendChild(img);
+
+		let targetDiv = document.createElement('div');
+		targetDiv.className = 'target';
+		paDiv.appendChild(targetDiv);
+
+		document.getElementById('actionInfo').appendChild(paDiv);
+	}
+
+	private undoAction() {
+		if (this.startedAction) {
+			if (this.startedAction.ele) {
+				this.startedAction.ele.parentNode.removeChild(this.startedAction.ele);
+			}
+			this.startedAction = undefined;
+		}
+	}
+
+	private targetChosen(target: Region) {
+		if (this.startedAction) {
+			this.startedAction.target = target;
+			let targetDiv = this.startedAction.ele.getElementsByClassName('target')[0] as HTMLElement;
+			util.elementColorize(targetDiv, target.gameData.owner.color);
+			targetDiv.innerText = target.gameData.name;
 		}
 	}
 
@@ -307,8 +396,7 @@ export class Game {
 		g('countryInfo').className = 'show';
 		let cn = g('countryName');
 		cn.innerText = d.name;
-		cn.style.backgroundColor = util.colorArrayToRGB(d.owner.color);
-		cn.style.color = util.colorArrayToForegroundRGB(d.owner.color); 
+		util.elementColorize(cn, d.owner.color);
 		g('countryPopulation').innerText = this.numstr(d.population);
 		g('countryMilitary').innerText = this.numstr(d.militarySize);
 		g('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
@@ -334,3 +422,4 @@ export class Game {
 		});
 	}
 }
+ 
