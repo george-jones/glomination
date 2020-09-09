@@ -14,6 +14,7 @@ interface PlannedAction {
 	target?: Region;
 	num?: number;
 	ele?: HTMLElement;
+	arrow?: BABYLON.Mesh;
 }
 
 interface Player {
@@ -50,6 +51,7 @@ export class Game {
 	private currentPlayer: number;
 	private startedAction: PlannedAction;
 	private sourceRegion: Region;
+	private lastTargetedRegion: Region;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -135,32 +137,51 @@ export class Game {
 		this.pickRegion(null);
 	}
 
+	private regionIsLegalTarget(region: Region) {
+		let curPlayer = this.players[this.currentPlayer];
+		if (this.startedAction.action === 'attack') {
+			if (region.gameData.owner == curPlayer) {
+				return false;
+			} else {
+				return true;
+			}
+		} else if (this.startedAction.action === 'move' || this.startedAction.action === 'settle') {
+			if (region.gameData.owner == curPlayer) {
+				return true;
+			} else {
+				return false;
+			}
+		} else {
+			// shouldn't happen
+			return false;
+		}
+	}
+
 	private highlightRegion(click: boolean) {
 		let pickResult = this.scene.pick(this.scene.pointerX, this.scene.pointerY);
 		let curPlayer = this.players[this.currentPlayer];
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
+
+			if (this.startedAction) {
+				if (region && region != this.startedAction.source && this.lastTargetedRegion != region) {
+					this.makeRegionTarget(region);
+				} else if (!region) {
+					this.wipeLastRegionTarget();
+				}
+			}
+
 			if (click) {
 				if (region) {
 					if (this.startedAction) {
-						if (this.startedAction.action === 'attack') {
-							if (region.gameData.owner == curPlayer) {
-								this.undoAction();
-							} else {
-								this.targetChosen(region);
-							}
-						} else if (this.startedAction.action === 'move' || this.startedAction.action === 'settle') {
-							if (region.gameData.owner == curPlayer) {
-								this.targetChosen(region);
-							} else {
-								this.undoAction();
-							}
+						if (this.regionIsLegalTarget(region)) {
+							this.targetChosen(region);
 						} else {
-							// shouldn't happen
 							this.undoAction();
 						}
 					} else if (region.gameData.owner == curPlayer) {
 						this.sourceRegion = region;
+						this.lastTargetedRegion = undefined;
 						this.showActionButtons();
 					}
 				} else {
@@ -168,6 +189,36 @@ export class Game {
 				}
 			}
 			this.pickRegion(region);
+		}
+	}
+
+	private wipeLastRegionTarget() {
+		if (this.startedAction.arrow) {
+			this.scene.removeMesh(this.startedAction.arrow);
+			this.startedAction.arrow = undefined;
+		}
+	}
+
+	private makeRegionTarget(r: Region) {
+		this.wipeLastRegionTarget();
+		this.lastTargetedRegion = r;
+
+		if (this.regionIsLegalTarget(r)) {
+			let color: number[] = [ ];
+			this.wipeLastRegionTarget();
+
+			// see also index.html's "#actionInfo .pa img."" definitions
+			if (this.startedAction.action == 'attack') {
+				color = [ 0.6, 0, 0 ];
+			} else if (this.startedAction.action == 'settle') {
+				color = [ 0, 0.6, 0 ];
+			} else if (this.startedAction.action == 'move') {
+				color = [ 0.66, 0.66, 0 ];
+			} else {
+				return;
+			}
+
+			this.startedAction.arrow =  this.planet.makeRegionsArrow(this.startedAction.source, r, color);
 		}
 	}
 
@@ -218,6 +269,7 @@ export class Game {
 				this.startedAction.ele.parentNode.removeChild(this.startedAction.ele);
 			}
 			this.startedAction = undefined;
+			this.lastTargetedRegion = undefined;
 		}
 	}
 
@@ -323,8 +375,6 @@ export class Game {
 			totalMaxPops[ownerNum] += d.maximumPopulation;
 		});
 
-		console.log(totalMaxPops);
-
 		// make every player start w/ the same initial total population by multiplying
 		// initial populations by a factor that depends on the totals.
 		let minTotalPop = -1;
@@ -338,7 +388,6 @@ export class Game {
 		players.forEach((p, i) => {
 			p.startingPopulationMultiplier = this.config.population.initialMax * minTotalPop / totalMaxPops[i];
 			p.totalPop = 0;
-			console.log(p.startingPopulationMultiplier);
 		});
 
 		regionsBySize.forEach((r) => {

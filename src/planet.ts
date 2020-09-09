@@ -770,4 +770,37 @@ export class Planet {
 			}
 		});
 	}
+
+	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
+		// find midpoint
+		let mp = target.midPoint.add(source.midPoint);
+		let elevation = 1.005;
+
+		// in the unlikely event that they chose two countries whose midpoint
+		// is the exact center of the planet, choose a different midpoint at random.
+		if (mp.x == 0 && mp.y == 0 && mp.z == 0) {
+			mp.x = Math.random();
+			mp.y = Math.random();
+			mp.z = Math.random();
+		}
+
+		// push midpoint just above surface of planet
+		mp.normalize().scaleInPlace(elevation);
+
+		let sp = source.midPoint.normalizeToNew().scaleInPlace(elevation);
+		let tp = target.midPoint.normalizeToNew().scaleInPlace(elevation);
+
+		let lines: BABYLON.Vector3[][] = [ ];
+		lines.push([ sp, mp]);
+		lines.push([ mp, tp]);
+
+		let lineSystem = BABYLON.MeshBuilder.CreateLineSystem("yeet", {
+			lines: lines,
+			useVertexAlpha: false
+		}, this.sphere.getScene());
+		lineSystem.color = new BABYLON.Color3(color[0], color[1], color[2]);
+		lineSystem.isPickable = false;
+
+		return lineSystem;
+	}
 }
