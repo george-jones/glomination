@@ -775,7 +775,7 @@ export class Planet {
 	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
 		// find midpoint
 		let mp = target.midPoint.add(source.midPoint);
-		let elevation = 1.005;
+		let elevation = 1.005 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
 		let scene = this.sphere.getScene();
 		let segMax = 50;
 		let arrowWidth = 0.065;
@@ -851,10 +851,14 @@ export class Planet {
 		}
 
 		let arrow = new BABYLON.Mesh('arrow', scene);
-		let mat = new BABYLON.StandardMaterial('', scene);
+		let mat = new BABYLON.StandardMaterial('' + elevation, scene);
 		mat.diffuseColor = new BABYLON.Color3(color[0], color[1], color[2]);
 		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
-		mat.alpha = 0.85;
+		//mat.alpha = 0.99;//1.0;//0.85;
+		//mat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+		//mat.useLogarithmicDepth = true;
+		//mat.zOffset = elevation;
+
 		arrow.material = mat;
 		arrow.isPickable = false;
 
