@@ -1,5 +1,6 @@
 import * as BABYLON from 'babylonjs';
 import * as rand from './rand';
+import * as util from './util';
 import { Region, createRegions, claimIslands } from './countryMaker';
 
 function getVertVector(positions: BABYLON.FloatArray, vertNum:number) : BABYLON.Vector3 {
@@ -775,6 +776,9 @@ export class Planet {
 		// find midpoint
 		let mp = target.midPoint.add(source.midPoint);
 		let elevation = 1.005;
+		let scene = this.sphere.getScene();
+		let segMax = 50;
+		let arrowWidth = 0.065;
 
 		// in the unlikely event that they chose two countries whose midpoint
 		// is the exact center of the planet, choose a different midpoint at random.
@@ -784,12 +788,83 @@ export class Planet {
 			mp.z = Math.random();
 		}
 
+		let groundMp = mp.normalize();
 		// push midpoint just above surface of planet
-		mp.normalize().scaleInPlace(elevation);
+		mp = groundMp.scale(elevation);
 
-		let sp = source.midPoint.normalizeToNew().scaleInPlace(elevation);
-		let tp = target.midPoint.normalizeToNew().scaleInPlace(elevation);
+		let sp = source.midPoint.normalizeToNew();
+		let tp = target.midPoint.normalizeToNew();
 
+		// Two maximally distant points on a unit sphere are 2 apart.
+		let numSegs = Math.ceil(segMax * (tp.subtract(sp).length() / 2));
+		// Force numSegs to be even so that we have a definite midpoint
+		if (numSegs % 2 == 1) {
+			numSegs++;
+		}
+		let indices: number[] = new Array<number>(3 * 2 * numSegs);
+		let positions: number[] = new Array<number>(3 * 2 * (numSegs + 1));
+
+		for (let i=0; i < numSegs + 1; i++) {
+			let baseIdx = i * 2;
+
+			if (i < numSegs) {
+				// vertex position numbers for two triangles
+				indices[i*6 + 0] = baseIdx;
+				indices[i*6 + 1] = baseIdx + 3;
+				indices[i*6 + 2] = baseIdx + 1;
+				indices[i*6 + 3] = baseIdx;
+				indices[i*6 + 4] = baseIdx + 2;
+				indices[i*6 + 5] = baseIdx + 3;
+			}
+
+			// 2 vertex positions
+			let p0;
+			let p1;
+			if (i < numSegs) {
+				let groundPos;
+				let tang;
+				let norm;
+
+				if (i < numSegs / 2) {
+					groundPos = util.vecinterp(sp, groundMp, numSegs/2, i).normalize();
+					tang = groundMp.subtract(groundPos).normalize();
+					norm = groundPos.cross(tang).normalize().scale(arrowWidth / 2);
+				} else {
+					groundPos = util.vecinterp(groundMp, tp, numSegs/2, i - numSegs/2).normalize();
+					tang = tp.subtract(groundPos).normalize();
+					norm = groundPos.cross(tang).normalize().scale(arrowWidth / 2);
+				}
+
+				p0 = groundPos.add(norm).scale(elevation);
+				p1 = groundPos.subtract(norm).scale(elevation);
+			} else {
+				p0 = tp.scale(elevation);
+				p1 = p0;
+			}
+
+			positions[3*2*i + 0] = p0.x;
+			positions[3*2*i + 1] = p0.y;
+			positions[3*2*i + 2] = p0.z;
+			positions[3*2*i + 3] = p1.x;
+			positions[3*2*i + 4] = p1.y;
+			positions[3*2*i + 5] = p1.z;
+		}
+
+		let arrow = new BABYLON.Mesh('arrow', scene);
+		let mat = new BABYLON.StandardMaterial('', scene);
+		mat.diffuseColor = new BABYLON.Color3(color[0], color[1], color[2]);
+		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
+		mat.alpha = 0.85;
+		arrow.material = mat;
+		arrow.isPickable = false;
+
+		let vertextData = new BABYLON.VertexData();
+		vertextData.indices = indices;
+		vertextData.positions = positions;
+		vertextData.normals = positions;
+		vertextData.applyToMesh(arrow);
+
+		/*
 		let lines: BABYLON.Vector3[][] = [ ];
 		lines.push([ sp, mp]);
 		lines.push([ mp, tp]);
@@ -800,8 +875,9 @@ export class Planet {
 		}, this.sphere.getScene());
 		lineSystem.color = new BABYLON.Color3(color[0], color[1], color[2]);
 		lineSystem.isPickable = false;
+		*/
 
-		return lineSystem;
+		return arrow;
 	}
 
 	public regionsMidpointDraw() {
