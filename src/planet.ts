@@ -803,4 +803,24 @@ export class Planet {
 
 		return lineSystem;
 	}
+
+	public regionsMidpointDraw() {
+		let lines: BABYLON.Vector3[][] = [ ];
+
+		this.regions.forEach((r) => {
+			console.log(r.midPoint.length());
+			let p1 = r.midPoint;
+			let p2 = r.midPoint.scale(1.1);
+			lines.push([p1, p2]);
+		});
+
+		let lineSystem = BABYLON.MeshBuilder.CreateLineSystem("yeet", {
+			lines: lines,
+			useVertexAlpha: false
+		}, this.sphere.getScene());
+		lineSystem.color = new BABYLON.Color3(1, 1, 1);
+		lineSystem.isPickable = false;
+
+		return lineSystem;
+	}
 }

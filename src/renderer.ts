@@ -42,7 +42,7 @@ export default class Renderer {
 		mat.emissiveColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
 		mat.diffuseColor = new BABYLON.Color3(1, 1, 1);
-		//mat.wireframe = true;
+		///mat.wireframe = true;
 
 		const sphere = BABYLON.MeshBuilder.CreateIcoSphere("globe",
 			{radius: 1, subdivisions: 32, updatable: true }, scene);

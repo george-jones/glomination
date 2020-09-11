@@ -33,9 +33,9 @@ export class Region {
 		this.midPoint.set(0, 0, 0);
 		if (this.faces.length > 0) {
 			this.faces.forEach((f) => {
-				this.midPoint.add(f.midPoint);
+				this.midPoint.addInPlace(f.midPoint);
 			});
-			this.midPoint.scaleInPlace(1 / this.faces.length);
+			this.midPoint.normalize();
 		}
 	}
 
@@ -45,7 +45,7 @@ export class Region {
 		}
 		if (this.faces.indexOf(f) == -1) {
 			this.faces.push(f);
-			this.setMidPoint();
+			//this.setMidPoint();
 		}
 		f.region = this;
 	};
@@ -54,7 +54,7 @@ export class Region {
 		let idx = this.faces.indexOf(f);
 		if (idx != -1) {
 			this.faces.splice(idx, 1);
-			this.setMidPoint();
+			//this.setMidPoint();
 		}
 		if (f.region == this) {
 			f.region = null;
@@ -443,7 +443,7 @@ export function claimIslands (planet: Planet, regionsIn: Region[], tfSettings: T
 
 export function randomName(): string {
 	let suffixes = [ 'iland', 'ia', 'ica', 'ary', 'istan', 'an', 'iway', 'ar', 'ey', 'en', 'aguay',
-		'ola', 'ina', 'us', 'as', 'on' ];
+		'ola', 'ina', 'us', 'as', 'on', 'guo' ];
 	let cons = [ 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p', 'qu', 'r', 's', 't', 'th', 'v', 'w', 'x', 'y', 'z' ];
 	let vows = [ 'a', 'e', 'i', 'o', 'u' ];
 	let name: string = rand.pick(cons)[0] + rand.pick(suffixes)[0];

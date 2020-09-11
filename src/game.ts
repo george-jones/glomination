@@ -106,6 +106,8 @@ export class Game {
 		document.getElementById('moveButton').addEventListener('click', () => {
 			this.actionStart('move');
 		});
+
+		///this.planet.regionsMidpointDraw();
 	}
 
 	private makePlayer(cp:cfg.Player): Player {
@@ -205,7 +207,6 @@ export class Game {
 
 		if (this.regionIsLegalTarget(r)) {
 			let color: number[] = [ ];
-			this.wipeLastRegionTarget();
 
 			// see also index.html's "#actionInfo .pa img."" definitions
 			if (this.startedAction.action == 'attack') {
