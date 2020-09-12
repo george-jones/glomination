@@ -48,6 +48,7 @@ export default class Renderer {
 			{radius: 1, subdivisions: 32, updatable: true }, scene);
 		this.sphere = sphere;
 		sphere.material = mat;
+
 		let actions = new BABYLON.ActionManager(scene);
 		sphere.actionManager = actions;
 

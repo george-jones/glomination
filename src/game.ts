@@ -195,8 +195,9 @@ export class Game {
 	}
 
 	private wipeLastRegionTarget() {
+		this.lastTargetedRegion = undefined;
 		if (this.startedAction.arrow) {
-			this.scene.removeMesh(this.startedAction.arrow);
+			this.planet.removeArrow(this.startedAction.arrow);
 			this.startedAction.arrow = undefined;
 		}
 	}
@@ -280,7 +281,7 @@ export class Game {
 			let targetDiv = this.startedAction.ele.getElementsByClassName('target')[0] as HTMLElement;
 			util.elementColorize(targetDiv, target.gameData.owner.color);
 			targetDiv.innerText = target.gameData.name;
-			// TODO: add to list of actions
+			this.players[this.currentPlayer].plannedActions.push(this.startedAction);
 			this.startedAction = undefined;
 		}
 	}

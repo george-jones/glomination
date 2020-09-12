@@ -103,11 +103,6 @@ export class Planet {
 		this.jumbleVertices();
 		this.renormal();
 		this.makeFaces();
-		//const positions = sphere.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-		//moveVert(positions, this.colocatedVertMap, 0, new BABYLON.Vector3(-1, 1, 1));
-		//this.sphere.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
-		//this.sphere.updateFacetData();
 	}
 
 	public show() {
@@ -775,7 +770,7 @@ export class Planet {
 	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
 		// find midpoint
 		let mp = target.midPoint.add(source.midPoint);
-		let elevation = 1.005 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
+		let arrowElevation = 1.005 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
 		let scene = this.sphere.getScene();
 		let segMax = 50;
 		let arrowWidth = 0.065;
@@ -790,7 +785,7 @@ export class Planet {
 
 		let groundMp = mp.normalize();
 		// push midpoint just above surface of planet
-		mp = groundMp.scale(elevation);
+		mp = groundMp.scale(arrowElevation);
 
 		let sp = source.midPoint.normalizeToNew();
 		let tp = target.midPoint.normalizeToNew();
@@ -835,10 +830,10 @@ export class Planet {
 					norm = groundPos.cross(tang).normalize().scale(arrowWidth / 2);
 				}
 
-				p0 = groundPos.add(norm).scale(elevation);
-				p1 = groundPos.subtract(norm).scale(elevation);
+				p0 = groundPos.add(norm).scale(arrowElevation);
+				p1 = groundPos.subtract(norm).scale(arrowElevation);
 			} else {
-				p0 = tp.scale(elevation);
+				p0 = tp.scale(arrowElevation);
 				p1 = p0;
 			}
 
@@ -851,16 +846,22 @@ export class Planet {
 		}
 
 		let arrow = new BABYLON.Mesh('arrow', scene);
-		let mat = new BABYLON.StandardMaterial('' + elevation, scene);
+		let mat = new BABYLON.StandardMaterial('' + arrowElevation, scene);
 		mat.diffuseColor = new BABYLON.Color3(color[0], color[1], color[2]);
-		mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
+		mat.specularColor = new BABYLON.Color3(0.3, 0.3, 0.3); // shininess
+		//mat.specularColor = new BABYLON.Color3(0.02, 0.02, 0.02); // shininess
+		//mat.wireframe = true;
 		//mat.alpha = 0.99;//1.0;//0.85;
 		//mat.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
 		//mat.useLogarithmicDepth = true;
-		//mat.zOffset = elevation;
+		//mat.zOffset = arrowElevation;
 
 		arrow.material = mat;
 		arrow.isPickable = false;
+		// I wish this worked
+		//arrow.enableEdgesRendering();
+		//arrow.edgesWidth = 2.0;
+		//arrow.edgesColor = new BABYLON.Color4(0, 0, 0, 1);
 
 		let vertextData = new BABYLON.VertexData();
 		vertextData.indices = indices;
@@ -868,20 +869,11 @@ export class Planet {
 		vertextData.normals = positions;
 		vertextData.applyToMesh(arrow);
 
-		/*
-		let lines: BABYLON.Vector3[][] = [ ];
-		lines.push([ sp, mp]);
-		lines.push([ mp, tp]);
-
-		let lineSystem = BABYLON.MeshBuilder.CreateLineSystem("yeet", {
-			lines: lines,
-			useVertexAlpha: false
-		}, this.sphere.getScene());
-		lineSystem.color = new BABYLON.Color3(color[0], color[1], color[2]);
-		lineSystem.isPickable = false;
-		*/
-
 		return arrow;
+	}
+
+	public removeArrow(arrow: BABYLON.Mesh) {
+		this.sphere.getScene().removeMesh(arrow);
 	}
 
 	public regionsMidpointDraw() {
