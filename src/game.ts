@@ -168,6 +168,8 @@ export class Game {
 		if (pickResult.pickedMesh == this.planet.sphere) {
 			let region = this.planet.faces[pickResult.faceId].region;
 
+//			document.getElementById('sourceCountry').classList.remove('hidden');
+
 			if (this.startedAction) {
 				if (region && region != this.startedAction.source && this.lastTargetedRegion != region) {
 					this.makeRegionTarget(region);
@@ -275,6 +277,8 @@ export class Game {
 			}
 			this.startedAction = undefined;
 			this.lastTargetedRegion = undefined;
+			document.getElementById('sourceCountry').classList.add('hidden');
+			document.getElementById('targetCountry').classList.add('hidden');
 		}
 	}
 
@@ -285,7 +289,9 @@ export class Game {
 			util.elementColorize(targetDiv, target.gameData.owner.color);
 			targetDiv.innerText = target.gameData.name;
 			this.players[this.currentPlayer].plannedActions.push(this.startedAction);
-			this.startedAction = undefined;
+			this.startedAction = undefined; 
+			document.getElementById('sourceCountry').classList.add('hidden');
+			document.getElementById('targetCountry').classList.add('hidden');
 		}
 	}
 
@@ -425,9 +431,15 @@ export class Game {
 		}
 
 		if (region && region != pr) {
+			let containerId;
+			if (this.startedAction && this.startedAction.source != region) {
+				containerId = 'targetCountry';
+			} else {
+				containerId = 'sourceCountry';
+			}
 			region.setColor(region.gameData.owner.highlightColor);
-			this.showCountryInfo(region.gameData);
-		}
+			this.showCountryInfo(region.gameData, containerId);
+		}	
 		this.pickedRegion = region;
 		
 		this.planet.reColorAll();
@@ -445,19 +457,21 @@ export class Game {
 		return n.toLocaleString(undefined);
 	}
 
-	private showCountryInfo(d: RegionGameData) {
+	private showCountryInfo(d: RegionGameData, elementId: string) {
 		let g = (id:string) => document.getElementById(id);
+		let c = document.getElementById(elementId);
+		let byclass = (className: string) => c.getElementsByClassName(className)[0] as HTMLElement;
 		let players = this.players;
 
-		g('countryInfo').className = 'show';
-		let cn = g('countryName');
-		cn.innerText = d.name;
+		c.classList.remove('hidden');
+		let cn = byclass('countryName');
+		cn.innerText = d.name; 
 		util.elementColorize(cn, d.owner.color);
-		g('countryPopulation').innerText = this.numstr(d.population);
-		g('countryMilitary').innerText = this.numstr(d.militarySize);
-		g('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
+		byclass('countryPopulation').innerText = this.numstr(d.population);
+		byclass('countryMilitary').innerText = this.numstr(d.militarySize);
+		byclass('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
  
-		let popBar = g('countryPopulationBar'); 
+		let popBar = byclass('countryPopulationBar'); 
 		util.domRemoveChildren(popBar); 
 	
 		let totalLoyalty = d.loyalty.reduce((prev, curr) => prev+curr, 0);

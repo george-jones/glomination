@@ -34,6 +34,7 @@
 
 		#countryInfo {
 			display: flex;
+			flex-direction: column;
 			height: 100%;
 			width: 325px;
 			background-color: rgba(50,50,50,0.5);
@@ -43,15 +44,11 @@
 			pointer-events: auto;
 		}
 
-		#countryInfo .guts {
+		.hidden {
 			display: none;
 		}
 
-		#countryInfo.show .guts {
-			display: block;
-		}
-
-		#countryName {
+		.cd.countryName {
 			font-size: 32px;
 			padding-left: 6px;
 			border-radius: 6px;
@@ -85,7 +82,6 @@
 			overflow-y: auto;
 			pointer-events: auto;
 		}
-
 
 		#actionInfo::-webkit-scrollbar-track {
 			-webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
@@ -278,24 +274,44 @@
 	<canvas id="render-canvas"></canvas>
 	<div id="ui">
 		<div id="countryInfo">
-			<div class="guts">
-				<div class="cd" id="countryName"></div>
+			<div id="sourceCountry" class="hidden">
+				<div class="cd countryName"></div>
 				<div class="cd">
 					<img src="img/population.png" title="Population" style="vertical-align: top" />
 					<div class="ib">
-						<div id="population" class="bar">
-							<div id="populationFill" style="background-color: #999"></div>
+						<div class="population bar">
+							<div class="populationFill" style="background-color: #999"></div>
 						</div>
-						<div id="countryPopulation"></div>
+						<div class="countryPopulation"></div>
 					</div>
 				</div>
 				<div class="cd">
 					<img src="img/loyalty.png" title="Loyalty" />
-					<div id="countryPopulationBar" class="ib bar"></div>
+					<div class="countryPopulationBar ib bar"></div>
 				</div>
 				<div class="cd">
 					<img src="img/blade.png" title="Military" />
-					<div class="ib" id="countryMilitary"></div>
+					<div class="ib countryMilitary"></div>
+				</div>
+			</div>
+			<div id="targetCountry" class="hidden">
+				<div class="cd countryName"></div>
+				<div class="cd">
+					<img src="img/population.png" title="Population" style="vertical-align: top" />
+					<div class="ib">
+						<div class="population bar">
+							<div class="populationFill" style="background-color: #999"></div>
+						</div>
+						<div class="countryPopulation"></div>
+					</div>
+				</div>
+				<div class="cd">
+					<img src="img/loyalty.png" title="Loyalty" />
+					<div class="countryPopulationBar ib bar"></div>
+				</div>
+				<div class="cd">
+					<img src="img/blade.png" title="Military" />
+					<div class="ib countryMilitary"></div>
 				</div>
 			</div>
 		</div>
