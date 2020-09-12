@@ -773,7 +773,7 @@ export class Planet {
 		let arrowElevation = 1.007 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
 		let scene = this.sphere.getScene();
 		let segMax = 50;
-		let arrowWidth = 0.065;
+		let arrowWidth = 0.045;
 
 		// in the unlikely event that they chose two countries whose midpoint
 		// is the exact center of the planet, choose a different midpoint at random.
