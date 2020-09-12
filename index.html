@@ -21,16 +21,26 @@
 			touch-action: none;
 		}
 
-		#countryInfo {
+		#ui {
 			position: fixed;
-			left: 0;
 			top: 0;
+			left: 0;
+			right: 0;
 			bottom: 0;
-			min-width: 325px;
+			display: flex;
+			flex-direction: row;
+			pointer-events: none;
+		}
+
+		#countryInfo {
+			display: flex;
+			height: 100%;
+			width: 325px;
 			background-color: rgba(50,50,50,0.5);
 			color: #ccc;
 			padding: 10px;
 			border-right: 8px solid rgb(50,50,50,0.25);
+			pointer-events: auto;
 		}
 
 		#countryInfo .guts {
@@ -49,18 +59,31 @@
 			margin-bottom: 16px;
 		}
 
+		#interact {
+			display: flex;
+			flex-grow: 1;
+			height: 0;
+			background-color: rgba(0,0,0,0.25);
+			pointer-events: auto;
+			transition: height 0.15s;
+		}
+
+		#interact.shown {
+			height: 100%;
+		}
+
 		#actionInfo {
-			position: fixed;
-			right: 0;
-			top: 0;
-			bottom: 0;
-			min-width: 325px;
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+			width: 325px;
 			background-color: rgba(50,50,50,0.5);
 			color: #ddd;
 			padding: 10px;
 			font-size: 32px;
 			border-left: 8px solid rgb(50,50,50,0.25);
 			overflow-y: auto;
+			pointer-events: auto;
 		}
 
 		#actionEventCatcher {
@@ -187,10 +210,11 @@
 		}
 
 		#actionInfo .pa {
-			background-color: rgba(0,0,0,0.5);
+			background-color: rgba(0,0,0,0.35);
 			padding: 6px 6px 0 6px;
 			border-radius: 6px;
 			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
+			margin-bottom: -6px;
 		}
 
 		#actionInfo .pa div {
@@ -233,29 +257,34 @@
 
 <body>
 	<canvas id="render-canvas"></canvas>
-	<div id="countryInfo">
-		<div class="guts">
-			<div class="cd" id="countryName"></div>
-			<div class="cd">
-				<img src="img/population.png" title="Population" style="vertical-align: top" />
-				<div class="ib">
-					<div id="population" class="bar">
-						<div id="populationFill" style="background-color: #999"></div>
+	<div id="ui">
+		<div id="countryInfo">
+			<div class="guts">
+				<div class="cd" id="countryName"></div>
+				<div class="cd">
+					<img src="img/population.png" title="Population" style="vertical-align: top" />
+					<div class="ib">
+						<div id="population" class="bar">
+							<div id="populationFill" style="background-color: #999"></div>
+						</div>
+						<div id="countryPopulation"></div>
 					</div>
-					<div id="countryPopulation"></div>
+				</div>
+				<div class="cd">
+					<img src="img/loyalty.png" title="Loyalty" />
+					<div id="countryPopulationBar" class="ib bar"></div>
+				</div>
+				<div class="cd">
+					<img src="img/blade.png" title="Military" />
+					<div class="ib" id="countryMilitary"></div>
 				</div>
 			</div>
-			<div class="cd">
-				<img src="img/loyalty.png" title="Loyalty" />
-				<div id="countryPopulationBar" class="ib bar"></div>
-			</div>
-			<div class="cd">
-				<img src="img/blade.png" title="Military" />
-				<div class="ib" id="countryMilitary"></div>
-			</div>
 		</div>
-	</div>
-	<div id="actionInfo">
+		<div id="interact">
+			
+		</div>
+		<div id="actionInfo">
+		</div>
 	</div>
 	<div id="actionEventCatcher"></div>
 	<div id="chooseAction">

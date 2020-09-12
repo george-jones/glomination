@@ -107,6 +107,9 @@ export class Game {
 			this.actionStart('move');
 		});
 
+		document.getElementById('countryInfo').addEventListener('click', () => {
+			document.getElementById('interact').classList.toggle('shown');
+		});
 		///this.planet.regionsMidpointDraw();
 	}
 
