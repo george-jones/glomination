@@ -770,7 +770,7 @@ export class Planet {
 	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
 		// find midpoint
 		let mp = target.midPoint.add(source.midPoint);
-		let arrowElevation = 1.005 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
+		let arrowElevation = 1.007 + 0.005 * Math.random(); // bit of random to try to prevent z-fighting.  doesn't help if using alpha.
 		let scene = this.sphere.getScene();
 		let segMax = 50;
 		let arrowWidth = 0.065;
@@ -786,7 +786,7 @@ export class Planet {
 		let groundMp = mp.normalize();
 		// push midpoint just above surface of planet
 		mp = groundMp.scale(arrowElevation);
-
+ 
 		let sp = source.midPoint.normalizeToNew();
 		let tp = target.midPoint.normalizeToNew();
 
@@ -796,13 +796,16 @@ export class Planet {
 		if (numSegs % 2 == 1) {
 			numSegs++;
 		}
-		let indices: number[] = new Array<number>(3 * 2 * numSegs);
-		let positions: number[] = new Array<number>(3 * 2 * (numSegs + 1));
+		let indices: number[] = new Array<number>(3 * (2 * numSegs - 1));
+		let positions: number[] = new Array<number>(3 * (2 * numSegs + 3));
+		let prevGroundPos;
+		let prevNorm;
 
 		for (let i=0; i < numSegs + 1; i++) {
 			let baseIdx = i * 2;
+			let normScale = util.linterp(1.25, 0.75, numSegs, i);
 
-			if (i < numSegs) {
+			if (i < numSegs - 1) {
 				// vertex position numbers for two triangles
 				indices[i*6 + 0] = baseIdx;
 				indices[i*6 + 1] = baseIdx + 3;
@@ -810,11 +813,17 @@ export class Planet {
 				indices[i*6 + 3] = baseIdx;
 				indices[i*6 + 4] = baseIdx + 2;
 				indices[i*6 + 5] = baseIdx + 3;
+			} else {
+				// final arrow triangle
+				indices[i*6 + 0] = baseIdx;
+				indices[i*6 + 1] = baseIdx + 2;
+				indices[i*6 + 2] = baseIdx + 1;
 			}
 
 			// 2 vertex positions
 			let p0;
 			let p1;
+			let p2;
 			if (i < numSegs) {
 				let groundPos;
 				let tang;
@@ -828,13 +837,20 @@ export class Planet {
 					groundPos = util.vecinterp(groundMp, tp, numSegs/2, i - numSegs/2).normalize();
 					tang = tp.subtract(groundPos).normalize();
 					norm = groundPos.cross(tang).normalize().scale(arrowWidth / 2);
+					prevGroundPos = groundPos;
+					prevNorm = norm;
 				}
+
+				norm.scaleInPlace(normScale);
 
 				p0 = groundPos.add(norm).scale(arrowElevation);
 				p1 = groundPos.subtract(norm).scale(arrowElevation);
 			} else {
-				p0 = tp.scale(arrowElevation);
-				p1 = p0;
+				let widerNorm = prevNorm.scale(2);
+				
+				p0 = prevGroundPos.add(widerNorm).scale(arrowElevation);
+				p1 = prevGroundPos.subtract(widerNorm).scale(arrowElevation);
+				p2 = tp.scale(arrowElevation);
 			}
 
 			positions[3*2*i + 0] = p0.x;
@@ -843,6 +859,11 @@ export class Planet {
 			positions[3*2*i + 3] = p1.x;
 			positions[3*2*i + 4] = p1.y;
 			positions[3*2*i + 5] = p1.z;
+			if (p2) {
+				positions[3*2*i + 6] = p2.x;
+				positions[3*2*i + 7] = p2.y;
+				positions[3*2*i + 8] = p2.z;
+			}
 		}
 
 		let arrow = new BABYLON.Mesh('arrow', scene);
