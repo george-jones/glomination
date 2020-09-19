@@ -173,7 +173,7 @@ export class Game {
 			if (this.startedAction) {
 				if (region && region != this.startedAction.source && this.lastTargetedRegion != region) {
 					this.makeRegionTarget(region);
-				} else if (!region) {
+				} else if (!region || region == this.startedAction.source) {
 					this.wipeLastRegionTarget();
 				}
 			}
