@@ -534,8 +534,11 @@ export class Game {
 		let prop = document.getElementById('actionProportion') as HTMLElement;
 		let fill = document.getElementById('actionProportionFill') as HTMLElement;
 		let v = document.getElementById('actionValue');
-		var okBtn = document.getElementById('okAction');
-		var removeBtn = document.getElementById('removeAction');
+		let okBtn = document.getElementById('okAction');
+		let removeBtn = document.getElementById('removeAction');
+		let actionSource = document.getElementById('actionSource');
+		let actionTarget = document.getElementById('actionTarget');
+		let actionLabel = document.getElementById('actionLabel');
 		let actionDefault;
 		let increments = 20;
 		let baseNumber = 0;
@@ -561,6 +564,12 @@ export class Game {
 			v.innerHTML = this.numstr(pa.num);
 		};
 
+		util.elementColorize(actionSource, pa.source.gameData.owner.color);
+		actionSource.innerHTML = pa.source.gameData.name;
+		util.elementColorize(actionTarget, pa.target.gameData.owner.color);
+		actionTarget.innerHTML = pa.target.gameData.name;
+		actionLabel.className = pa.action;
+  
 		if (pa.action === 'attack') {
 			actionDefault = this.config.actions.attack;
 			baseNumber = pa.source.gameData.militarySize;
@@ -570,7 +579,7 @@ export class Game {
 			maxPercent = Math.min(100, 100 * (pa.target.gameData.maximumPopulation - pa.target.gameData.population) / pa.source.gameData.population);
 		} else if (pa.action === 'move') {
 			actionDefault = this.config.actions.move;
-			baseNumber = pa.source.gameData.population;
+			baseNumber = pa.source.gameData.militarySize;
 		} else {
 			console.log('Unrecognized action: ' + pa.action);
 			return;
@@ -627,11 +636,5 @@ export class Game {
 		prop.addEventListener('mousedown', this.lastPropListener);
 		okBtn.addEventListener('click', this.lastClickOkListener);
 		removeBtn.addEventListener('click', this.lastClickRemoveListener);
-
-		/* 
-		later:
-					document.getElementById('sourceCountry').classList.add('hidden');
-			document.getElementById('targetCountry').classList.add('hidden');
-		*/
 	}
-}
+}  

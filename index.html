@@ -114,18 +114,65 @@
 
 		#interact .ib {
 			position: absolute;
-			top: 40%;
+			top: 25%;
 			left: 25%;
 			right: 25%;
 			width: auto;
 			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-			background-color: rgba(0,0,0,0.60);
+			background-color: rgba(0,0,0,0.95);
 			backdrop-filter: blur(3px);
 			padding: 10px;
 			border-radius: 10px;
 		}
 
+		#actionLabel {
+			text-align: center;
+			margin: 10px 0 2px 0;
+		}
+
+		#actionLabel .attack, #actionLabel .settle, #actionLabel .move {
+			display: none;
+		}
+
+		#actionLabel.attack .attack, #actionLabel.settle .settle, #actionLabel.move .move {
+			display: inline;
+			font-size: 2.4em;
+			color: #aaa;
+			text-align: center;
+		}
+
+		#actionLabel img {
+			width: 32px;
+			height: 32px;
+			vertical-align: baseline;
+			margin: 0 9px 0 9px;
+			padding: 4px;
+			border-radius: 4px;
+		}
+
+		#actionLabel.attack img {
+			background-color: #900;
+		}
+
+		#actionLabel.settle img {
+			background-color: #090;
+		}
+
+		#actionLabel.move img {
+			background-color: #aa0;
+		}
+
+		#actionSource, #actionTarget {
+			border-radius: 5px;
+			padding: 5px;
+			font-size: 2.4em;
+			color: #aaa;
+			text-align: center;
+			text-overflow: ellipsis;
+		}
+
 		#actionProportion {
+			margin-top: 25px;
 			height: 50px;
 			width: 100%;
 		}
@@ -136,8 +183,8 @@
 		}
 
 		#actionValue {
-			color: #999;
-			font-size: 5em;
+			color: #aaa;
+			font-size: 2.4em;
 			text-align: center;
 		}
 
@@ -150,8 +197,8 @@
 			text-align: center;
 			padding: 10px;
 			background-color: rgba(40, 40, 40, 0.75);
-			color: #999;
-			font-size: 3em;
+			color: #aaa;
+			font-size: 2.4em;
 			border-radius: 5px;
 			margin: 10px;
 			cursor: pointer;
@@ -159,7 +206,7 @@
 
 		#interactButtons div:hover {
 			background-color: rgba(50, 50, 50, 0.85);
-			color: #aaa;
+			color: #ddd;
 		}
 
 		#chooseAction {
@@ -292,7 +339,6 @@
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
-			text-overflow: ellipsis;
 			font-size: 24px;
 			height: 32px;
 			padding: 7px 3px 0 6px;
@@ -372,6 +418,13 @@
 		</div>
 		<div id="interact">
 			<div class="ib">
+				<div id="actionSource">Source</div>
+				<div id="actionLabel">
+					<span class="attack"><img src="img/blade.png" /> Attack</span>
+					<span class="settle"><img src="img/population.png"> Send Settlers</span>
+					<span class="move"><img src="img/shield.png" /> Move Armies</span>
+				</div>
+				<div id="actionTarget">Target</div>
 				<div id="actionProportion" class="bar">
 					<div id="actionProportionFill" style="background-color: #999"></div>
 				</div>
