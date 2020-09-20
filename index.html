@@ -56,19 +56,6 @@
 			margin-bottom: 16px;
 		}
 
-		#interact {
-			display: flex;
-			flex-grow: 1;
-			height: 0;
-			background-color: rgba(0,0,0,0.25);
-			pointer-events: auto;
-			transition: height 0.15s;
-		}
-
-		#interact.shown {
-			height: 100%;
-		}
-
 		#actionInfo {
 			display: flex;
 			flex-direction: column;
@@ -84,7 +71,7 @@
 		}
 
 		#actionInfo::-webkit-scrollbar-track {
-			-webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+			box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
 			border-radius: 10px;
 			background-color: #333;
 		}
@@ -107,6 +94,72 @@
 			left: 0;
 			right: 0;
 			display: none;
+		}
+
+		#interact {
+			display: flex;
+			position: relative;
+			flex-grow: 1;
+			height: 0;
+			/* background-image: linear-gradient(to bottom, rgba(0,0,0,0.01), rgba(0,0,0,0.80)); */
+			pointer-events: auto;
+			transition: height 0.15s;
+			visibility: hidden;
+		}
+
+		#interact.shown {
+			height: 100%;
+			visibility: visible;
+		}
+
+		#interact .ib {
+			position: absolute;
+			top: 40%;
+			left: 25%;
+			right: 25%;
+			width: auto;
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+			background-color: rgba(0,0,0,0.60);
+			backdrop-filter: blur(3px);
+			padding: 10px;
+			border-radius: 10px;
+		}
+
+		#actionProportion {
+			height: 50px;
+			width: 100%;
+		}
+
+		#actionProportionFill {
+			height: 50px;
+			box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+		}
+
+		#actionValue {
+			color: #999;
+			font-size: 5em;
+			text-align: center;
+		}
+
+		#interactButtons {
+			text-align: center;
+		}
+
+		#interactButtons div {
+			display: inline-block;
+			text-align: center;
+			padding: 10px;
+			background-color: rgba(40, 40, 40, 0.75);
+			color: #999;
+			font-size: 3em;
+			border-radius: 5px;
+			margin: 10px;
+			cursor: pointer;
+		}
+
+		#interactButtons div:hover {
+			background-color: rgba(50, 50, 50, 0.85);
+			color: #aaa;
 		}
 
 		#chooseAction {
@@ -195,6 +248,8 @@
 			width: 240px;
 			height: 16px;
 			box-shadow: 3px 3px 10px 3px rgba(0,0,0,0.25);
+			background-color: rgba(0,0,0,0.15);
+			backdrop-filter: blur(3px);
 		}
 
 		.bar div {
@@ -316,7 +371,20 @@
 			</div>
 		</div>
 		<div id="interact">
-			
+			<div class="ib">
+				<div id="actionProportion" class="bar">
+					<div id="actionProportionFill" style="background-color: #999"></div>
+				</div>
+				<div id="actionValue"></div>
+				<div id="interactButtons">
+					<div id="okAction">
+						OK
+					</div>
+					<div id="removeAction">
+						Remove
+					</div>
+				</div>
+			</div>
 		</div>
 		<div id="actionInfo">
 		</div>

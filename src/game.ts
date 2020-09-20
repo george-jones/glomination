@@ -27,6 +27,7 @@ interface Player {
 }
 
 export interface RegionGameData {
+	id?: number;
 	owner?: Player;
 	name?: string;
 	size?: number;
@@ -52,6 +53,10 @@ export class Game {
 	private startedAction: PlannedAction;
 	private sourceRegion: Region;
 	private lastTargetedRegion: Region;
+	private lastPropListener: any;
+	private lastClickOkListener: any;
+	private lastClickRemoveListener: any;
+	private interacting: boolean;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -67,23 +72,31 @@ export class Game {
 		this.planet.show();
 		let game = this;
 		this.showingActionButtons = false;
+		this.lastPropListener = null;
+		this.lastClickOkListener = null;
+		this.lastClickRemoveListener = null;
+		this.interacting = false;
 
 		window.addEventListener('pointerdown', () => {
 			if (this.showingActionButtons) {
 				return;
 			}
-			game.mouseDown();
+			if (!this.interacting) {
+				game.mouseDown();
+			}
 		});
 
 		window.addEventListener('pointerup', () => {
 			if (this.showingActionButtons) {
 				return;
 			}
-			this.mouseUp();
+			if (!this.interacting) {
+				this.mouseUp();
+			}
 		});
 
 		window.addEventListener('pointermove', (evt) => {
-			if (this.showingActionButtons) {
+			if (this.interacting || this.showingActionButtons) {
 				return;
 			}
 			if (evt.buttons == 0) {
@@ -92,6 +105,9 @@ export class Game {
 		});
 
 		document.getElementById('actionEventCatcher').addEventListener('click', () => {
+			if (this.interacting) {
+				return;
+			}
 			this.hideActionButtons();
 		});
 
@@ -107,10 +123,12 @@ export class Game {
 			this.actionStart('move');
 		});
 
-		document.getElementById('countryInfo').addEventListener('click', () => {
-			document.getElementById('interact').classList.toggle('shown');
-		});
-		///this.planet.regionsMidpointDraw();
+		document.getElementById('actionInfo').addEventListener('click', (evt) => {
+			if (this.interacting) {
+				return;
+			}
+			// TODO: show action in interact slider
+		}); 
 	}
 
 	private makePlayer(cp:cfg.Player): Player {
@@ -187,9 +205,22 @@ export class Game {
 							this.undoAction();
 						}
 					} else if (region.gameData.owner == curPlayer) {
-						this.sourceRegion = region;
-						this.lastTargetedRegion = undefined;
-						this.showActionButtons();
+						// make sure there isn't already an action originating from here
+						let found_pa = null;
+
+						this.players[this.currentPlayer].plannedActions.forEach(pa => {
+							if (pa.source === region) {
+								found_pa = pa;
+							}
+						});
+
+						if (found_pa) {
+							this.showActionInput(found_pa);
+						} else {
+							this.sourceRegion = region;
+							this.lastTargetedRegion = undefined;
+							this.showActionButtons();
+						}
 					}
 				} else {
 					this.undoAction();
@@ -198,7 +229,7 @@ export class Game {
 			this.pickRegion(region);
 		}
 	}
-
+ 
 	private wipeLastRegionTarget() {
 		this.lastTargetedRegion = undefined;
 		if (this.startedAction.arrow) {
@@ -238,6 +269,7 @@ export class Game {
 		this.hideActionButtons();
 
 		let paDiv = document.createElement('div');
+		paDiv.setAttribute('data-src-idx', '' + pa.source.gameData.id);
 		paDiv.className = 'pa';
 
 		pa.ele = paDiv;
@@ -289,9 +321,8 @@ export class Game {
 			util.elementColorize(targetDiv, target.gameData.owner.color);
 			targetDiv.innerText = target.gameData.name;
 			this.players[this.currentPlayer].plannedActions.push(this.startedAction);
+			this.showActionInput(this.startedAction);
 			this.startedAction = undefined; 
-			document.getElementById('sourceCountry').classList.add('hidden');
-			document.getElementById('targetCountry').classList.add('hidden');
 		}
 	}
 
@@ -336,11 +367,12 @@ export class Game {
 			totalMaxPops[i] = 0;
 		}
 
-		this.regions.forEach(r => {
+		this.regions.forEach((r, idx) => {
 			let d: RegionGameData = { };
 
 			r.gameData = d;
 
+			d.id = idx;
 			d.size = r.faces.length * 24906;
 			d.turnsOwned = 0;
 			d.turnsSinceWar = -1;
@@ -491,5 +523,98 @@ export class Game {
 			}
 		});
 	}
+
+	private showActionInput(pa: PlannedAction) {
+		let interact = document.getElementById('interact');
+		let prop = document.getElementById('actionProportion') as HTMLElement;
+		let fill = document.getElementById('actionProportionFill') as HTMLElement;
+		let v = document.getElementById('actionValue');
+		var okBtn = document.getElementById('okAction');
+		var removeBtn = document.getElementById('removeAction');
+		let actionDefault;
+		let increments = 20;
+		let baseNumber = 0;
+		let maxPercent = 100;
+
+		let setPercent = (n: number, t: number) => {
+			let minPercent = 100 / increments;
+			let percent = minPercent * Math.ceil(increments * n / t);
+
+			if (percent == 0) {
+				percent = minPercent;
+			} else if (percent > maxPercent) {
+				percent = maxPercent;
+			}
+			fill.style.width = percent + '%';
+			pa.num = Math.floor((percent / 100) * baseNumber);
+			v.innerHTML = this.numstr(pa.num); 
+		} 
+
+		if (pa.action === 'attack') {
+			actionDefault = this.config.actions.attack;
+			baseNumber = pa.source.gameData.militarySize;
+		} else if (pa.action === 'settle') {
+			actionDefault = this.config.actions.settle;
+			baseNumber = pa.source.gameData.population;
+			maxPercent = Math.min(100, 100 * (pa.target.gameData.maximumPopulation - pa.target.gameData.population) / pa.source.gameData.population);
+		} else if (pa.action === 'move') {
+			actionDefault = this.config.actions.move;
+			baseNumber = pa.source.gameData.population;
+		} else {
+			console.log('Unrecognized action: ' + pa.action);
+			return;
+		}
+
+		this.interacting = true;
+		interact.classList.add('shown');
+		setPercent(actionDefault.defaultProportion, 1);
+
+		// This removing and re-creating of event listeners isn't my usual pattern,
+		// but it does have an advantage that the handlers have access to the variables
+		// in this function invocation.
+
+		if (this.lastPropListener) {
+			prop.removeEventListener('mousemove', this.lastPropListener);
+			prop.removeEventListener('mousedown', this.lastPropListener);
+		}
+
+		if (this.lastClickOkListener) {
+			okBtn.removeEventListener('click', this.lastClickOkListener);
+		}
+
+		if (this.lastClickRemoveListener) {
+			removeBtn.removeEventListener('click', this.lastClickRemoveListener);
+		}
+
+		this.lastPropListener = (evt: MouseEvent) => {
+			if (evt.buttons % 2 == 1) {
+				setPercent(evt.offsetX, prop.offsetWidth);
+			}
+		};
+
+		let hideInteract = () => {
+			this.interacting = false;
+			interact.classList.remove('shown');
+		}
+
+		this.lastClickOkListener = (evt: MouseEvent) => {
+			// pa.num has already been set, so we just need to ditch the interact box
+			hideInteract();
+		};
+
+		this.lastClickRemoveListener = (evt: MouseEvent) => {
+			hideInteract();
+		};
+
+		prop.addEventListener('mousemove', this.lastPropListener);
+		prop.addEventListener('mousedown', this.lastPropListener);
+		okBtn.addEventListener('click', this.lastClickOkListener);
+		removeBtn.addEventListener('click', this.lastClickRemoveListener);
+
+		/* 
+		later:
+					document.getElementById('sourceCountry').classList.add('hidden');
+			document.getElementById('targetCountry').classList.add('hidden');
+		*/
+	}
 }
- 
