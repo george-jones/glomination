@@ -307,11 +307,16 @@ export class Game {
 			if (this.startedAction.ele) {
 				this.startedAction.ele.parentNode.removeChild(this.startedAction.ele);
 			}
-			this.startedAction = undefined;
-			this.lastTargetedRegion = undefined;
-			document.getElementById('sourceCountry').classList.add('hidden');
-			document.getElementById('targetCountry').classList.add('hidden');
+			this.finalizeAction();
 		}
+	}
+
+	// stop showing the current action... move on
+	private finalizeAction() {
+		this.startedAction = undefined;
+		this.lastTargetedRegion = undefined;
+		document.getElementById('sourceCountry').classList.add('hidden');
+		document.getElementById('targetCountry').classList.add('hidden');
 	}
 
 	private targetChosen(target: Region) {
@@ -548,7 +553,13 @@ export class Game {
 			fill.style.width = percent + '%';
 			pa.num = Math.floor((percent / 100) * baseNumber);
 			v.innerHTML = this.numstr(pa.num); 
-		} 
+		}
+
+		let percentFromNum = (n: number) => {
+			let percent = Math.round(100 * n / baseNumber);
+			fill.style.width = percent + '%';
+			v.innerHTML = this.numstr(pa.num);
+		};
 
 		if (pa.action === 'attack') {
 			actionDefault = this.config.actions.attack;
@@ -567,7 +578,11 @@ export class Game {
 
 		this.interacting = true;
 		interact.classList.add('shown');
-		setPercent(actionDefault.defaultProportion, 1);
+		if (pa.num === undefined) {
+			setPercent(actionDefault.defaultProportion, 1);
+		} else {
+			percentFromNum(pa.num);
+		}
 
 		// This removing and re-creating of event listeners isn't my usual pattern,
 		// but it does have an advantage that the handlers have access to the variables
@@ -600,10 +615,12 @@ export class Game {
 		this.lastClickOkListener = (evt: MouseEvent) => {
 			// pa.num has already been set, so we just need to ditch the interact box
 			hideInteract();
+			this.finalizeAction();
 		};
 
 		this.lastClickRemoveListener = (evt: MouseEvent) => {
 			hideInteract();
+			this.finalizeAction();
 		};
 
 		prop.addEventListener('mousemove', this.lastPropListener);
