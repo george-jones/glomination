@@ -332,7 +332,10 @@ export class Game {
 
 				translate.setKeys(keys);
 				this.scene.activeCamera.animations.push(translate);
-				this.scene.beginAnimation(this.scene.activeCamera, 0, 5000, false);
+				this.scene.beginAnimation(this.scene.activeCamera, 0, 5000, false, 1.0, () => {
+					let cam = this.scene.activeCamera as BABYLON.ArcRotateCamera;
+					cam.setMatUp(); // maybe
+				});
 			}
 		});
 

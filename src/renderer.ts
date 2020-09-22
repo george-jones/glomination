@@ -28,7 +28,7 @@ export default class Renderer {
 		scene.clearColor = new BABYLON.Color4(0.07, 0.07, 0.07, 1.0);
 
 		const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI/2, Math.PI/2, 2.65, BABYLON.Vector3.Zero(), scene);
-		camera.lowerRadiusLimit = 2.01;
+		camera.lowerRadiusLimit = 2.05;
 		camera.upperRadiusLimit = 10;
 		camera.wheelPrecision = 250;
 		camera.angularSensibilityX = 2000;
