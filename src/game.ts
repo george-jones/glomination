@@ -299,6 +299,27 @@ export class Game {
 		targetDiv.className = 'target';
 		paDiv.appendChild(targetDiv);
 
+		paDiv.addEventListener('click', (evt) => {
+			let regionMidpoint;
+			if (evt.target === sourceDiv) {
+				regionMidpoint = pa.source.midPoint;
+			} else if (evt.target === targetDiv) {
+				regionMidpoint = pa.target.midPoint;
+			} else if (pa.source && pa.target) {
+				this.showActionInput(pa);
+			}
+
+			if (regionMidpoint) {
+				var startPos = this.scene.activeCamera.position;
+				var endPos = regionMidpoint.scale(startPos.length());
+				var translate = new BABYLON.Animation("camTranslate", "position", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+				var keys = [{frame:0, value:startPos}, {frame:100, value:endPos}];
+				translate.setKeys(keys);
+				this.scene.activeCamera.animations.push(translate);
+				this.scene.beginAnimation(this.scene.activeCamera, 0, 1000, false, 5.0);
+			}
+		});
+
 		document.getElementById('actionInfo').appendChild(paDiv);
 	}
 
@@ -628,7 +649,13 @@ export class Game {
 		};
 
 		this.lastClickRemoveListener = (evt: MouseEvent) => {
+			let playerActions = this.players[this.currentPlayer].plannedActions;
+			let idx = playerActions.indexOf(pa);
+			playerActions.splice(idx, 1);
+			pa.ele.remove();
+			this.planet.removeArrow(pa.arrow);
 			hideInteract();
+
 			this.finalizeAction();
 		};
 
