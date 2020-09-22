@@ -300,23 +300,39 @@ export class Game {
 		paDiv.appendChild(targetDiv);
 
 		paDiv.addEventListener('click', (evt) => {
-			let regionMidpoint;
+			let moveTo;
 			if (evt.target === sourceDiv) {
-				regionMidpoint = pa.source.midPoint;
+				moveTo = pa.source.midPoint;
 			} else if (evt.target === targetDiv) {
-				regionMidpoint = pa.target.midPoint;
+				moveTo = pa.target.midPoint;
 			} else if (pa.source && pa.target) {
 				this.showActionInput(pa);
 			}
 
-			if (regionMidpoint) {
-				var startPos = this.scene.activeCamera.position;
-				var endPos = regionMidpoint.scale(startPos.length());
-				var translate = new BABYLON.Animation("camTranslate", "position", 60, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
-				var keys = [{frame:0, value:startPos}, {frame:100, value:endPos}];
+			if (moveTo) {
+				let framesPerKey = 2;
+				let startPos = this.scene.activeCamera.position;
+				let endPos = moveTo.scale(startPos.length());
+				let translate = new BABYLON.Animation("camTranslate", "position", 60, BABYLON.Animation.ANIMATIONTYPE_VECTOR3, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+				let path = util.findGlobePath(startPos, endPos);
+				let t = -1 * framesPerKey;
+				let keys = path.map((p) => {
+					t += framesPerKey;
+					return { frame: t, value: p };
+				});
+				
+				// Creating an easing function
+				let easingFunction = new BABYLON.SineEase();
+
+				// For each easing function, you can choose between EASEIN (default), EASEOUT, EASEINOUT
+				easingFunction.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+
+				// Adding the easing function to the animation
+				translate.setEasingFunction(easingFunction);
+
 				translate.setKeys(keys);
 				this.scene.activeCamera.animations.push(translate);
-				this.scene.beginAnimation(this.scene.activeCamera, 0, 1000, false, 5.0);
+				this.scene.beginAnimation(this.scene.activeCamera, 0, 5000, false);
 			}
 		});
 
