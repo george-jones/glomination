@@ -717,7 +717,7 @@ export class Game {
 			});
 		});
 
-		let advance = (a:PlannedAction, cb:Function) {
+		let advance = (a:PlannedAction, cb:Function) => {
 			if (a.source.gameData.owner == game.players[game.currentPlayer]) {
 				window.setTimeout(cb, 100);
 			} else {
@@ -759,7 +759,8 @@ export class Game {
 	}
 
 	private moveAction(a: PlannedAction) {
-		console.log('move', a.source.gameData.name);
+		a.source.gameData.militarySize -= a.num;
+		a.target.gameData.militarySize += a.num;
 		this.removeActionFromList(a);
 	}
 
