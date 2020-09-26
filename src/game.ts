@@ -777,8 +777,26 @@ export class Game {
 
 	private settleActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
 		let game = this;
+		let totalAdding = 0;
+		let newPop = 0;
+		let targetData = actions[0].target.gameData;
+		let proportion = 1.0;
+		let loyaltyTotals: number[] = [ ];
 
-		console.log('settle', actions[0].source.gameData.name);
+		actions.forEach(a => {
+			totalAdding += a.num;
+		});
+
+		newPop = totalAdding + targetData.population;
+		if (newPop > 0) {
+			if (newPop > targetData.maximumPopulation) {
+				proportion = (targetData.maximumPopulation - targetData.population) / totalAdding;
+			}
+		}
+
+		targetData.loyalty.forEach((n, idx) => {
+			loyaltyTotals////
+		});
 
 		// clear
 		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
