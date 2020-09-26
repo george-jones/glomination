@@ -57,6 +57,7 @@ export class Game {
 	private lastClickOkListener: any;
 	private lastClickRemoveListener: any;
 	private interacting: boolean;
+	private executingActions: boolean;
 
 	constructor (planet: Planet, scene: BABYLON.Scene, players: cfg.Player[]) {
 		this.planet = planet;
@@ -76,6 +77,7 @@ export class Game {
 		this.lastClickOkListener = null;
 		this.lastClickRemoveListener = null;
 		this.interacting = false;
+		this.executingActions = false;
 
 		window.addEventListener('pointerdown', () => {
 			if (this.showingActionButtons) {
@@ -123,11 +125,8 @@ export class Game {
 			this.actionStart('move');
 		});
 
-		document.getElementById('actionInfo').addEventListener('click', (evt) => {
-			if (this.interacting) {
-				return;
-			}
-			// TODO: show action in interact slider
+		document.getElementById('goButton').addEventListener('click', (evt) => {
+			this.go();
 		}); 
 	}
 
@@ -485,7 +484,7 @@ export class Game {
 
 			d.population = Math.floor(d.maximumPopulation * d.owner.startingPopulationMultiplier);
 			d.owner.totalPop += d.population;
-			
+
 			// initialize loyalty numbers
 			let n = players.length;
 			for (let i=0; i < n; i++) {
@@ -683,4 +682,85 @@ export class Game {
 		okBtn.addEventListener('click', this.lastClickOkListener);
 		removeBtn.addEventListener('click', this.lastClickRemoveListener);
 	}
-}  
+
+	private go() {
+		let btn = document.getElementById('goButton');
+		let game = this;
+
+		btn.classList.add('disabled');
+
+		let moveActions: PlannedAction[] = [ ];
+		let settleActions: PlannedAction[] = [ ];
+		let attacksByRegion = new Map<number, PlannedAction[]>();
+
+		// TODO: a small matter of implementing NPC decisions
+
+		this.players.forEach(p => {
+			p.plannedActions.forEach(a => {
+				if (a.action == 'move') {
+					moveActions.push(a);
+				} else if (a.action == 'settle') {
+					settleActions.push(a);
+				} else if (a.action == 'attack') {
+					let id = a.target.gameData.id;
+					let attacks: PlannedAction[];
+
+					if (attacksByRegion.has(id)) {
+						attacks = attacksByRegion.get(id);
+					} else {
+						attacks = [ ];
+						attacksByRegion.set(id, attacks);
+					}
+
+					attacks.push(a);
+				}
+			});
+		});
+
+		util.asyncEach(moveActions, function (a:PlannedAction, cb:Function) {
+			game.moveAction(a);
+			window.requestAnimationFrame(cb as FrameRequestCallback);
+		}, function () {
+			util.asyncEach(settleActions, function (a:PlannedAction, cb:Function) {
+				game.settleAction(a);
+				window.requestAnimationFrame(cb as FrameRequestCallback);
+			}, function () {
+				const indices: number[] = Array.from(attacksByRegion.keys());
+				util.asyncEach(indices, function (idx:number, cb:Function) {
+					let attacks = attacksByRegion.get(idx);
+					game.attackActions(attacks);
+					window.requestAnimationFrame(cb as FrameRequestCallback);
+				}, function () {
+					// all done
+					console.log('done');
+				});
+			});
+		});
+	}
+
+	private removeActionFromList(a: PlannedAction) {
+		if (a.ele) {
+			a.ele.remove();
+		}
+		if (a.arrow) {
+			this.planet.removeArrow(a.arrow);
+		}
+	}
+
+	private moveAction(a: PlannedAction) {
+		console.log('move', a.source.gameData.name);
+		this.removeActionFromList(a);
+	}
+
+	private settleAction(a: PlannedAction) {
+		console.log('settle', a.source.gameData.name);
+		this.removeActionFromList(a);
+	}
+
+	private attackActions(actions: PlannedAction[]) {
+		console.log('attack', actions[0].target.gameData.name);
+		actions.forEach(a => {
+			this.removeActionFromList(a);
+		}, this);
+	}
+}

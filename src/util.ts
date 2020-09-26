@@ -90,3 +90,18 @@ export function findGlobePath(start: BABYLON.Vector3, end: BABYLON.Vector3): BAB
 
 	return path;
 }
+
+export function asyncEach(a: any[], f: Function, done:Function) {
+	let idx = -1;
+
+	let recur = () => {
+		idx++;
+		if (idx < a.length) {
+			f(a[idx], recur);
+		} else {
+			done();
+		}
+	}
+
+	recur();
+}
