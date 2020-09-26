@@ -690,19 +690,29 @@ export class Game {
 		btn.classList.add('disabled');
 
 		let moveActions: PlannedAction[] = [ ];
-		let settleActions: PlannedAction[] = [ ];
+		let settleByRegion = new Map<number, PlannedAction[]>();
 		let attacksByRegion = new Map<number, PlannedAction[]>();
 
 		// TODO: a small matter of implementing NPC decisions
 
 		this.players.forEach(p => {
 			p.plannedActions.forEach(a => {
+				let id = a.target.gameData.id;
+
 				if (a.action == 'move') {
 					moveActions.push(a);
 				} else if (a.action == 'settle') {
-					settleActions.push(a);
+					let settlings: PlannedAction[];
+
+					if (settleByRegion.has(id)) {
+						settlings = settleByRegion.get(id);
+					} else {
+						settlings = [ ];
+						settleByRegion.set(id, settlings);
+					}
+
+					settlings.push(a);
 				} else if (a.action == 'attack') {
-					let id = a.target.gameData.id;
 					let attacks: PlannedAction[];
 
 					if (attacksByRegion.has(id)) {
@@ -729,12 +739,13 @@ export class Game {
 			game.moveAction(a);
 			advance(a, cb);
 		}, function () {
-			util.asyncEach(settleActions, (a:PlannedAction, cb:Function) => {
-				game.settleAction(a);
-				advance(a, cb);
-			}, function () {
-				const indices: number[] = Array.from(attacksByRegion.keys());
-				util.asyncEach(indices, function (idx:number, cb:Function) {
+			const sIndices: number[] = Array.from(settleByRegion.keys());
+			util.asyncEach(sIndices, (idx:number, cb:Function) => {
+				let settlings = settleByRegion.get(idx);
+				game.settleActions(settlings, advance, cb);
+			}, () => {
+				const aIndices: number[] = Array.from(attacksByRegion.keys());
+				util.asyncEach(aIndices, (idx:number, cb:Function) => {
 					let attacks = attacksByRegion.get(idx);
 					game.attackActions(attacks, advance, cb);
 				}, () => {
@@ -764,9 +775,18 @@ export class Game {
 		this.removeActionFromList(a);
 	}
 
-	private settleAction(a: PlannedAction) {
-		console.log('settle', a.source.gameData.name);
-		this.removeActionFromList(a);
+	private settleActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
+		let game = this;
+
+		console.log('settle', actions[0].source.gameData.name);
+
+		// clear
+		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
+			game.removeActionFromList(a);
+			advanceCb(a, nextCb);
+		}, () => {
+			doneCb();
+		});
 	}
 
 	private attackActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
@@ -774,6 +794,7 @@ export class Game {
 
 		console.log('attack', actions[0].target.gameData.name);
 
+		// clear
 		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
 			game.removeActionFromList(a);
 			advanceCb(a, nextCb);
