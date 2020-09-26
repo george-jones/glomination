@@ -717,22 +717,33 @@ export class Game {
 			});
 		});
 
-		util.asyncEach(moveActions, function (a:PlannedAction, cb:Function) {
+		let advance = (a:PlannedAction, cb:Function) {
+			if (a.source.gameData.owner == game.players[game.currentPlayer]) {
+				window.setTimeout(cb, 100);
+			} else {
+				cb();
+			}
+		}
+
+		util.asyncEach(moveActions, (a:PlannedAction, cb:Function) => {
 			game.moveAction(a);
-			window.requestAnimationFrame(cb as FrameRequestCallback);
+			advance(a, cb);
 		}, function () {
-			util.asyncEach(settleActions, function (a:PlannedAction, cb:Function) {
+			util.asyncEach(settleActions, (a:PlannedAction, cb:Function) => {
 				game.settleAction(a);
-				window.requestAnimationFrame(cb as FrameRequestCallback);
+				advance(a, cb);
 			}, function () {
 				const indices: number[] = Array.from(attacksByRegion.keys());
 				util.asyncEach(indices, function (idx:number, cb:Function) {
 					let attacks = attacksByRegion.get(idx);
-					game.attackActions(attacks);
-					window.requestAnimationFrame(cb as FrameRequestCallback);
-				}, function () {
+					game.attackActions(attacks, advance, cb);
+				}, () => {
 					// all done
 					console.log('done');
+					game.players.forEach(p => {
+						p.plannedActions = [ ];
+					});
+					btn.classList.remove('disabled');
 				});
 			});
 		});
@@ -757,10 +768,16 @@ export class Game {
 		this.removeActionFromList(a);
 	}
 
-	private attackActions(actions: PlannedAction[]) {
+	private attackActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
+		let game = this;
+
 		console.log('attack', actions[0].target.gameData.name);
-		actions.forEach(a => {
-			this.removeActionFromList(a);
-		}, this);
+
+		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
+			game.removeActionFromList(a);
+			advanceCb(a, nextCb);
+		}, () => {
+			doneCb();
+		});
 	}
 }
