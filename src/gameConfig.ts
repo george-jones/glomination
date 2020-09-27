@@ -9,14 +9,17 @@ interface Population {
 	highBaseDensity: number;
 	polar: number;
 	equatorial: number;
-	disloyalGrowth: number;
 	loyalGrowth: number;
 	initialMax: number;
-	initialMilitary: number;
 }
 
 interface Loyalty {
 	ownerInitial: number;
+}
+
+interface Military {
+	initialMilitary: number;
+	growthFactor: number;
 }
 
 interface Action {
@@ -27,6 +30,7 @@ interface Action {
 export interface Config {
 	population: Population;
 	loyalty: Loyalty;
+	military: Military;
 	actions: {
 		attack: Action;
 		settle: Action;
@@ -41,13 +45,15 @@ export function getConfig () : Config {
 			highBaseDensity: 270,
 			polar: 0.15,
 			equatorial: 1.0,
-			disloyalGrowth: 0.10,
-			loyalGrowth: 1.0,
-			initialMax: 0.4,
-			initialMilitary: 0.0037
+			loyalGrowth: 0.3,
+			initialMax: 0.4
 		},
 		loyalty: {
 			ownerInitial: 0.6
+		},
+		military: {
+			initialMilitary: 0.0037,
+			growthFactor: 0.1
 		},
 		actions: {
 			attack: {

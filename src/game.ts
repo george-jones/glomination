@@ -496,7 +496,7 @@ export class Game {
 				}
 			}
 
-			d.militarySize = Math.floor(this.config.population.initialMilitary * d.population);
+			d.militarySize = Math.floor(this.config.military.initialMilitary * d.population);
 			r.gameData = d;
 		});
 	}
@@ -767,10 +767,13 @@ export class Game {
 					game.attackActions(attacks, advance, cb);
 				}, () => {
 					// all done
-					console.log('done');
 					game.players.forEach(p => {
 						p.plannedActions = [ ];
 					});
+
+					game.regionsGrowPopulation();
+					game.regionsGrowMilitary();
+
 					btn.classList.remove('disabled');
 				});
 			});
@@ -865,6 +868,41 @@ export class Game {
 			advanceCb(a, nextCb);
 		}, () => {
 			doneCb();
+		});
+	}
+
+	private regionsGrowPopulation() {
+		let g = this.config.population.loyalGrowth;
+
+		this.regions.forEach((r:Region) => {
+			let d = r.gameData;
+			let playerIndex = this.players.indexOf(d.owner);
+			let loyalPop = d.population * d.loyalty[playerIndex];
+			let addPop = Math.floor(loyalPop * g);
+
+			if (addPop + d.population > d.maximumPopulation) {
+				addPop = d.maximumPopulation - d.population;
+			}
+
+			let newLoyalPop = loyalPop + addPop;
+			let newTotalPop = d.population + addPop;
+
+			d.loyalty = d.loyalty.map((proportion, idx) => {
+				if (idx == playerIndex) {
+					return newLoyalPop / newTotalPop;
+				} else {
+					return (proportion * d.population) / newTotalPop;
+				}
+			});
+
+			d.population = newTotalPop;
+		}, this);
+
+	}
+
+	private regionsGrowMilitary() {
+		this.regions.forEach((r:Region) => {
+			// DO THIS NEXT
 		});
 	}
 }
