@@ -17,7 +17,6 @@ interface Population {
 
 interface Loyalty {
 	ownerInitial: number;
-	othersInitial: number;
 }
 
 interface Action {
@@ -48,8 +47,7 @@ export function getConfig () : Config {
 			initialMilitary: 0.0037
 		},
 		loyalty: {
-			ownerInitial: 0.4,
-			othersInitial: 0.2
+			ownerInitial: 0.6
 		},
 		actions: {
 			attack: {

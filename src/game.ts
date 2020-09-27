@@ -491,7 +491,7 @@ export class Game {
 				if (players[i] == d.owner) {
 					d.loyalty[i] = this.config.loyalty.ownerInitial;
 				} else {
-					d.loyalty[i] = this.config.loyalty.othersInitial / (n-1);
+					d.loyalty[i] = (1 - this.config.loyalty.ownerInitial) / (n-1);
 				}
 			}
 
@@ -538,6 +538,10 @@ export class Game {
 		let c = document.getElementById(elementId);
 		let byclass = (className: string) => c.getElementsByClassName(className)[0] as HTMLElement;
 		let players = this.players;
+		let totalPixels = 0;
+		let widthDeficit = 0;
+		let firstDiv: HTMLElement = null;
+		let firstWidth = 0;
 
 		c.classList.remove('hidden');
 		let cn = byclass('countryName');
@@ -558,14 +562,26 @@ export class Game {
 		sortedLoyalty.forEach((o) => {
 			let proportion = o.val / totalLoyalty;
 			let el;
+
 			if (proportion > 0) {
-				let width = Math.round(BAR_WIDTH * proportion);
+				let width = Math.floor(Math.floor(100 * BAR_WIDTH * proportion) / 100);
 				el = document.createElement('div');
 				el.style.backgroundColor = util.colorArrayToRGB(o.player.color);
 				el.style.width = width + 'px';
+				totalPixels += width;
 				popBar.appendChild(el);
+
+				if (firstWidth == 0) {
+					firstWidth = width;
+					firstDiv = el;
+				}
 			}
 		});
+
+		widthDeficit = popBar.clientWidth - totalPixels;
+		if (widthDeficit != 0) {
+			firstDiv.style.width = (firstWidth + widthDeficit) + 'px';
+		}
 	}
 
 	private showActionInput(pa: PlannedAction) {
@@ -782,21 +798,51 @@ export class Game {
 		let targetData = actions[0].target.gameData;
 		let proportion = 1.0;
 		let loyaltyTotals: number[] = [ ];
+		let loyaltyGrandTotal = 0;
 
 		actions.forEach(a => {
 			totalAdding += a.num;
+		});
+
+		game.players.forEach(p => {
+			loyaltyTotals.push(0);
 		});
 
 		newPop = totalAdding + targetData.population;
 		if (newPop > 0) {
 			if (newPop > targetData.maximumPopulation) {
 				proportion = (targetData.maximumPopulation - targetData.population) / totalAdding;
+				newPop = targetData.maximumPopulation;
 			}
-		}
 
-		targetData.loyalty.forEach((n, idx) => {
-			loyaltyTotals////
-		});
+			// start w/ the original loyalty numbers
+			targetData.loyalty.forEach((n, idx) => {
+				//targetData.loyalty(n);
+				let num = targetData.population * n;
+				loyaltyTotals[idx] += num;
+				loyaltyGrandTotal += num;
+			});
+
+			// add in the loyalty of all the settlers
+			actions.forEach((a) => {
+				a.source.gameData.loyalty.forEach((n, idx) => {
+					let num = proportion * a.num * n;
+					loyaltyTotals[idx] += num;
+					loyaltyGrandTotal += num;
+				});
+			});
+
+			// set loyalty proportions
+			targetData.loyalty = targetData.loyalty.map((n, idx) => {
+				return loyaltyTotals[idx] / loyaltyGrandTotal;
+			});
+
+			// set new populations
+			targetData.population = newPop;
+			actions.forEach((a) => {
+				a.source.gameData.population -= Math.floor(proportion * a.num);
+			});
+		}
 
 		// clear
 		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
