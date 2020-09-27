@@ -487,11 +487,12 @@ export class Game {
 
 			// initialize loyalty numbers
 			let n = players.length;
+			let initLoyal = this.config.loyalty.ownerInitial;
 			for (let i=0; i < n; i++) {
 				if (players[i] == d.owner) {
-					d.loyalty[i] = this.config.loyalty.ownerInitial;
+					d.loyalty[i] = initLoyal;
 				} else {
-					d.loyalty[i] = (1 - this.config.loyalty.ownerInitial) / (n-1);
+					d.loyalty[i] = (1 - initLoyal) / (n-1);
 				}
 			}
 
