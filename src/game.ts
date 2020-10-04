@@ -18,6 +18,7 @@ interface PlannedAction {
 }
 
 interface Player {
+	id?: number;
 	npc: boolean;
 	color: number[];
 	highlightColor: number[];
@@ -130,8 +131,9 @@ export class Game {
 		}); 
 	}
 
-	private makePlayer(cp:cfg.Player): Player {
+	private makePlayer(cp:cfg.Player, id:number): Player {
 		return {
+			id: id,
 			npc: cp.npc,
 			color: cp.color,
 			highlightColor: cp.highlightColor,
@@ -857,13 +859,80 @@ export class Game {
 		});
 	}
 
+	private processSingleConflict(a:PlannedAction) {
+		let c = this.config.actions.attack;
+		let d = a.target.gameData;
+		let dist = 0;
+		let eff_attacker = 0;
+		let eff_defender = 0;
+		let force_attacker = 0;
+		let force_defender = 0;
+		let luck = 0;
+		let diff = 0;
+		let defender_remaining = 0;
+		let attacker_remaining = 0;
+		let attacker_num = 0;
+		let defender_num = 0;
+
+		attacker_num = a.num;
+		defender_num = d.militarySize;
+
+		// attacker effectiveness goes down with distance
+		dist = a.source.midPoint.subtract(a.target.midPoint).length();
+		eff_attacker = c.minAttackEffect;
+		eff_attacker += Math.max((2 - dist)/2, 0) * (c.maxAttackEffect - c.minAttackEffect);
+
+		// defender effectiveness depends on relative population loyaly
+		eff_defender = c.minDefendEffect;
+		if (d.population > 0) {
+			eff_defender += (c.maxDefendEffect - c.minAttackEffect) * this.regionGetLoyalPop(d) / d.population; 
+		}
+
+		force_attacker = attacker_num * eff_attacker;
+		force_defender = defender_num * eff_defender;
+		luck = rand.gaussianRange(-1 * c.attackerLuck, c.defenderLuck);
+		if (luck < 0) {
+			force_attacker *= 1 - luck;
+		} else {
+			force_defender *= 1 + luck;
+		}
+
+		diff = force_defender - force_attacker;
+		
+		if (diff < 0) {
+			defender_remaining = 0;
+			attacker_remaining = Math.ceil(attacker_num * -1 * diff / force_attacker);
+		} else {
+			attacker_remaining = 0
+			defender_remaining = Math.ceil(defender_num * diff / force_defender)
+		}
+
+		return {
+			attacker_remaining,
+			defender_remaining
+		}
+	}
+
 	private attackActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
 		let game = this;
 
-		console.log('attack', actions[0].target.gameData.name);
-
-		// clear
 		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
+			let d = a.target.gameData;
+			let result = game.processSingleConflict(a);
+			let civKilled = game.config.actions.attack.civilianCasualtyFactor * (d.militarySize - result.defender_remaining);
+			let civRemaining = Math.max(0, d.population - civKilled);
+
+			d.population = civRemaining;
+
+			if (result.defender_remaining > 0) {
+				d.militarySize = result.defender_remaining;
+			} else {
+				// attacker took control of region
+				d.militarySize = result.attacker_remaining;
+				d.owner = a.source.gameData.owner;
+				this.planet.reColorAll();
+			}
+
 			game.removeActionFromList(a);
 			advanceCb(a, nextCb);
 		}, () => {
@@ -871,13 +940,17 @@ export class Game {
 		});
 	}
 
+	private regionGetLoyalPop(d: RegionGameData) {
+		return d.population * d.loyalty[d.owner.id];
+	}
+
 	private regionsGrowPopulation() {
 		let g = this.config.population.loyalGrowth;
 
 		this.regions.forEach((r:Region) => {
 			let d = r.gameData;
-			let playerIndex = this.players.indexOf(d.owner);
-			let loyalPop = d.population * d.loyalty[playerIndex];
+			let playerIndex = d.owner.id;
+			let loyalPop = this.regionGetLoyalPop(d);
 			let addPop = Math.floor(loyalPop * g);
 
 			if (addPop + d.population > d.maximumPopulation) {
@@ -902,7 +975,18 @@ export class Game {
 
 	private regionsGrowMilitary() {
 		this.regions.forEach((r:Region) => {
-			// DO THIS NEXT
+			let d = r.gameData;
+			let loyalPop = this.regionGetLoyalPop(d);
+			let growth = loyalPop * this.config.military.initialMilitary * this.config.military.growthFactor;
+
+			r.neighbors.forEach(n => {
+				let nd = n.gameData;
+				if (nd.owner == d.owner) {
+					growth += this.regionGetLoyalPop(nd) * this.config.military.initialMilitary * this.config.military.neighborGrowthFactor;
+				}
+			}, this);
+
+			d.militarySize += Math.ceil(growth);
 		});
 	}
 }

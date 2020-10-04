@@ -20,6 +20,7 @@ interface Loyalty {
 interface Military {
 	initialMilitary: number;
 	growthFactor: number;
+	neighborGrowthFactor: number;
 }
 
 interface Action {
@@ -27,12 +28,22 @@ interface Action {
 	color?: number[];
 }
 
+interface AttackAction extends Action {
+	minAttackEffect: number;
+	maxAttackEffect: number;
+	attackerLuck: number;
+	minDefendEffect: number;
+	maxDefendEffect: number;
+	defenderLuck: number;
+	civilianCasualtyFactor: number;
+}
+
 export interface Config {
 	population: Population;
 	loyalty: Loyalty;
 	military: Military;
 	actions: {
-		attack: Action;
+		attack: AttackAction;
 		settle: Action;
 		move: Action;
 	}
@@ -53,11 +64,19 @@ export function getConfig () : Config {
 		},
 		military: {
 			initialMilitary: 0.0037,
-			growthFactor: 0.1
+			growthFactor: 0.1,
+			neighborGrowthFactor: 0.02
 		},
 		actions: {
 			attack: {
-				defaultProportion: 0.33
+				defaultProportion: 0.33,
+				minAttackEffect: 0.5,
+				maxAttackEffect: 1.0,
+				attackerLuck: 0.1,
+				minDefendEffect: 0.5,
+				maxDefendEffect: 1.0,
+				defenderLuck: 0.1,
+				civilianCasualtyFactor: 1.0
 			},
 			settle: {
 				defaultProportion: 0.2
