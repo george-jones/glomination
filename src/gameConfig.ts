@@ -76,7 +76,7 @@ export function getConfig () : Config {
 				minDefendEffect: 0.5,
 				maxDefendEffect: 1.0,
 				defenderLuck: 0.1,
-				civilianCasualtyFactor: 1.0
+				civilianCasualtyFactor: 4.0
 			},
 			settle: {
 				defaultProportion: 0.2

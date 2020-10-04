@@ -922,6 +922,8 @@ export class Game {
 			let civKilled = game.config.actions.attack.civilianCasualtyFactor * (d.militarySize - result.defender_remaining);
 			let civRemaining = Math.max(0, d.population - civKilled);
 
+			a.source.gameData.militarySize -= a.num;
+
 			d.population = civRemaining;
 
 			if (result.defender_remaining > 0) {
@@ -930,7 +932,8 @@ export class Game {
 				// attacker took control of region
 				d.militarySize = result.attacker_remaining;
 				d.owner = a.source.gameData.owner;
-				this.planet.reColorAll();
+				a.target.setColor(d.owner.color);
+				game.planet.reColorAll();
 			}
 
 			game.removeActionFromList(a);
