@@ -495,7 +495,7 @@ export class Game {
 				containerId = 'sourceCountry';
 			}
 			region.setColor(region.gameData.owner.highlightColor);
-			this.showCountryInfo(region.gameData, containerId);
+			this.showCountryInfo(region, containerId);
 		}	
 		this.pickedRegion = region;
 		
@@ -514,22 +514,41 @@ export class Game {
 		return n.toLocaleString(undefined);
 	}
 
-	private showCountryInfo(d: RegionGameData, elementId: string) {
+	private getNeighborsProductionBonus(r: Region): number {
+		let owner = r.gameData.owner;
+		let bonus = 0;
+
+		r.neighbors.forEach(n => {
+			let nd = n.gameData;
+			if (nd.owner == owner) {
+				bonus += nd.production * this.config.military.neighborGrowthFactor;
+			}
+		}, this);
+
+		return Math.ceil(bonus);
+	}
+
+	private showCountryInfo(r: Region, elementId: string) {
+		let d = r.gameData;
 		let g = (id:string) => document.getElementById(id);
 		let c = document.getElementById(elementId);
 		let byclass = (className: string) => c.getElementsByClassName(className)[0] as HTMLElement;
-		let players = this.players;
-		let totalPixels = 0;
-		let widthDeficit = 0;
-		let firstDiv: HTMLElement = null;
-		let firstWidth = 0;
+		let prodStr;
+		let bonus = 0;
 
 		c.classList.remove('hidden');
 		let cn = byclass('countryName');
 		cn.innerText = d.name; 
 		util.elementColorize(cn, d.owner.color);
-		byclass('countryProduction').innerText = this.numstr(d.production);
-		byclass('countryMilitary').innerText = this.numstr(d.militarySize); 
+
+		prodStr = this.numstr(d.production);
+		bonus = this.getNeighborsProductionBonus(r);
+		if (bonus > 0) {
+			prodStr += ' + ' + this.numstr(bonus);
+		}
+
+		byclass('countryMilitary').innerText = this.numstr(d.militarySize);
+		byclass('countryProduction').innerText = prodStr;
 	}
 
 	private showActionInput(pa: PlannedAction) {
@@ -801,14 +820,8 @@ export class Game {
 			let d = r.gameData;
 			let growth = r.gameData.production;
 
-			r.neighbors.forEach(n => {
-				let nd = n.gameData;
-				if (nd.owner == d.owner) {
-					growth += nd.production * this.config.military.neighborGrowthFactor;
-				}
-			}, this);
-
-			d.militarySize += Math.ceil(growth);
-		});
+			growth += this.getNeighborsProductionBonus(r);
+			d.militarySize += growth;
+		}, this);
 	}
 }

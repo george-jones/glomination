@@ -48,7 +48,7 @@ export function getConfig () : Config {
 		},
 		military: {
 			initialMilitary: 5,
-			neighborGrowthFactor: 0.02
+			neighborGrowthFactor: 0.2
 		},
 		actions: {
 			attack: {
