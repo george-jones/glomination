@@ -466,7 +466,7 @@ export class Game {
 		});
 
 		players.forEach((p, i) => {
-			p.startingProductionMultiplier = this.config.productivity.initialMax * minTotalProd / totalProductions[i];
+			p.startingProductionMultiplier = minTotalProd / totalProductions[i];
 			p.totalProduction = 0;
 		});
 
@@ -799,12 +799,12 @@ export class Game {
 	private regionsGrowMilitary() {
 		this.regions.forEach((r:Region) => {
 			let d = r.gameData;
-			let growth = d.production * this.config.military.initialMilitary * this.config.military.growthFactor;
+			let growth = r.gameData.production;
 
 			r.neighbors.forEach(n => {
 				let nd = n.gameData;
 				if (nd.owner == d.owner) {
-					growth += nd.production * this.config.military.initialMilitary * this.config.military.neighborGrowthFactor;
+					growth += nd.production * this.config.military.neighborGrowthFactor;
 				}
 			}, this);
 

@@ -9,12 +9,10 @@ interface Productivity {
 	highBaseDensity: number;
 	polar: number;
 	equatorial: number;
-	initialMax: number;
 }
 
 interface Military {
 	initialMilitary: number;
-	growthFactor: number;
 	neighborGrowthFactor: number;
 }
 
@@ -43,15 +41,13 @@ export interface Config {
 export function getConfig () : Config {
 	return {
 		productivity: {
-			lowBaseDensity: 0.03,
-			highBaseDensity: 0.1,
+			lowBaseDensity: 0.01,
+			highBaseDensity: 0.03,
 			polar: 0.15,
-			equatorial: 1.0,
-			initialMax: 0.4
+			equatorial: 1.0
 		},
 		military: {
-			initialMilitary: 1,
-			growthFactor: 0.1,
+			initialMilitary: 5,
 			neighborGrowthFactor: 0.02
 		},
 		actions: {
