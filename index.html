@@ -130,11 +130,11 @@
 			margin: 10px 0 2px 0;
 		}
 
-		#actionLabel .attack, #actionLabel .settle, #actionLabel .move {
+		#actionLabel .attack, #actionLabel .move {
 			display: none;
 		}
 
-		#actionLabel.attack .attack, #actionLabel.settle .settle, #actionLabel.move .move {
+		#actionLabel.attack .attack, #actionLabel.move .move {
 			display: inline;
 			font-size: 2.4em;
 			color: #aaa;
@@ -152,10 +152,6 @@
 
 		#actionLabel.attack img {
 			background-color: #900;
-		}
-
-		#actionLabel.settle img {
-			background-color: #090;
 		}
 
 		#actionLabel.move img {
@@ -255,13 +251,6 @@
 			left: -24px;
 		}
 
-		#settleButton {
-			background-color: #090;
-			position: absolute;
-			top: -1px;
-			left: -56px;
-		}
-
 		#moveButton {
 			background-color: #aa0;
 			position: absolute;
@@ -275,10 +264,6 @@
 
 		#attackButton img {
 			top: 8px;
-		}
-
-		#settleButton img {
-			top: 11px;
 		}
 
 		#moveButton img {
@@ -361,10 +346,6 @@
 			background-color: #900;
 		}
 
-		#actionInfo .pa img.settle {
-			background-color: #090;
-		}
-
 		#actionInfo .pa img.move {
 			background-color: #aa0;
 		}
@@ -401,41 +382,23 @@
 			<div id="sourceCountry" class="hidden">
 				<div class="cd countryName"></div>
 				<div class="cd">
-					<img src="img/population.png" title="Population" style="vertical-align: top" />
-					<div class="ib">
-						<div class="population bar">
-							<div class="populationFill" style="background-color: #999"></div>
-						</div>
-						<div class="countryPopulation"></div>
-					</div>
-				</div>
-				<div class="cd">
-					<img src="img/loyalty.png" title="Loyalty" />
-					<div class="countryPopulationBar ib bar"></div>
-				</div>
-				<div class="cd">
 					<img src="img/blade.png" title="Military" />
 					<div class="ib countryMilitary"></div>
+				</div>
+				<div class="cd">
+					<img src="img/factory.png" title="Production" style="vertical-align: top" />
+					<div class="countryProduction"></div>
 				</div>
 			</div>
 			<div id="targetCountry" class="hidden">
 				<div class="cd countryName"></div>
 				<div class="cd">
-					<img src="img/population.png" title="Population" style="vertical-align: top" />
-					<div class="ib">
-						<div class="population bar">
-							<div class="populationFill" style="background-color: #999"></div>
-						</div>
-						<div class="countryPopulation"></div>
-					</div>
-				</div>
-				<div class="cd">
-					<img src="img/loyalty.png" title="Loyalty" />
-					<div class="countryPopulationBar ib bar"></div>
-				</div>
-				<div class="cd">
 					<img src="img/blade.png" title="Military" />
 					<div class="ib countryMilitary"></div>
+				</div>
+				<div class="cd">
+					<img src="img/factory.png" title="Production" style="vertical-align: top" />
+					<div class="countryProduction"></div>
 				</div>
 			</div>
 		</div>
@@ -444,7 +407,6 @@
 				<div id="actionSource">Source</div>
 				<div id="actionLabel">
 					<span class="attack"><img src="img/blade.png" /> Attack</span>
-					<span class="settle"><img src="img/population.png"> Send Settlers</span>
 					<span class="move"><img src="img/shield.png" /> Move Armies</span>
 				</div>
 				<div id="actionTarget">Target</div>
@@ -470,9 +432,6 @@
 		<div id="actionUnderCircle"></div>
 		<div id="attackButton" title="Attack">
 			<img src="img/blade.png" />
-		</div>
-		<div id="settleButton" title="Send Settlers">
-			<img src="img/population.png"> 
 		</div>
 		<div id="moveButton" title="Move Armies">
 			<img src="img/shield.png" />

@@ -22,8 +22,8 @@ interface Player {
 	npc: boolean;
 	color: number[];
 	highlightColor: number[];
-	startingPopulationMultiplier: number;
-	totalPop: number;
+	startingProductionMultiplier: number;
+	totalProduction: number;
 	plannedActions: PlannedAction[];
 }
 
@@ -32,13 +32,11 @@ export interface RegionGameData {
 	owner?: Player;
 	name?: string;
 	size?: number;
-	maximumPopulation?: number;
 	turnsOwned?: number;
 	turnsSinceWar?: number;
-	population?: number;
+	production?: number;
 	baseDensity?: number;
 	militarySize?: number;
-	loyalty?: number[];
 }
 
 export class Game {
@@ -118,10 +116,6 @@ export class Game {
 			this.actionStart('attack');
 		});
 
-		document.getElementById('settleButton').addEventListener('click', () => {
-			this.actionStart('settle');
-		});
-
 		document.getElementById('moveButton').addEventListener('click', () => {
 			this.actionStart('move');
 		});
@@ -137,8 +131,8 @@ export class Game {
 			npc: cp.npc,
 			color: cp.color,
 			highlightColor: cp.highlightColor,
-			totalPop: 0,
-			startingPopulationMultiplier: 0,
+			totalProduction: 0,
+			startingProductionMultiplier: 0,
 			plannedActions: []
 		}
 	}
@@ -169,7 +163,7 @@ export class Game {
 			} else {
 				return true;
 			}
-		} else if (this.startedAction.action === 'move' || this.startedAction.action === 'settle') {
+		} else if (this.startedAction.action === 'move') {
 			if (region.gameData.owner == curPlayer) {
 				return true;
 			} else {
@@ -249,8 +243,6 @@ export class Game {
 			// see also index.html's "#actionInfo .pa img."" definitions
 			if (this.startedAction.action == 'attack') {
 				color = [ 0.6, 0, 0 ];
-			} else if (this.startedAction.action == 'settle') {
-				color = [ 0, 0.6, 0 ];
 			} else if (this.startedAction.action == 'move') {
 				color = [ 0.66, 0.66, 0 ];
 			} else {
@@ -285,8 +277,6 @@ export class Game {
 		let imgFile;
 		if (action == 'attack') {
 			imgFile = 'blade.png';
-		} else if (action == 'settle') {
-			imgFile = 'population.png';
 		} else if (action == 'move') {
 			imgFile = 'shield.png';
 		}
@@ -396,21 +386,21 @@ export class Game {
 		return low + proportion * (high - low);
 	};
 
-	private regionCalcMaxPop (region: Region) {
+	private regionCalcProduction (region: Region) {
 		let d = region.gameData;
-		let equatorial = this.lerpProportion(1 - Math.abs(region.midPoint.y), this.config.population.polar, this.config.population.equatorial);
+		let equatorial = this.lerpProportion(1 - Math.abs(region.midPoint.y), this.config.productivity.polar, this.config.productivity.equatorial);
 
-		d.maximumPopulation = Math.floor(d.size * d.baseDensity * equatorial);
+		d.production = Math.floor(d.size * d.baseDensity * equatorial);
 	};
 
 	private assignRegions() {
 		let players = this.players;
 		let regionsBySize = this.regions.slice();
 		let names = new Set();
-		let totalMaxPops: number[] = [ ];
+		let totalProductions: number[] = [ ];
 
 		for (let i=0; i < players.length; i++) {
-			totalMaxPops[i] = 0;
+			totalProductions[i] = 0;
 		}
 
 		this.regions.forEach((r, idx) => {
@@ -422,11 +412,10 @@ export class Game {
 			d.size = r.faces.length * 24906;
 			d.turnsOwned = 0;
 			d.turnsSinceWar = -1;
-			d.population = 0;
-			d.baseDensity = rand.range(this.config.population.lowBaseDensity, this.config.population.highBaseDensity);
+			d.production = 0;
+			d.baseDensity = rand.range(this.config.productivity.lowBaseDensity, this.config.productivity.highBaseDensity);
 			d.militarySize = 0;
-			d.loyalty = [ ];
-			this.regionCalcMaxPop(r);
+			this.regionCalcProduction(r);
 
 			while (true) {
 				d.name = randomName();
@@ -437,19 +426,19 @@ export class Game {
 			}
 		});
 
-		// largest to smallest
+		// most productive to least
 		regionsBySize.sort((a: Region, b: Region): number => {
-			return (b.gameData.maximumPopulation - a.gameData.maximumPopulation);
+			return (b.gameData.production - a.gameData.production);
 		});
 
-		let findSmallestMaxPopPlayer = ():number => {
+		let findSmallestProductionPlayer = ():number => {
 			let ownerNum = -1;
-			let minPop = 0;
+			let minProd = 0;
 
-			totalMaxPops.forEach((mpop, idx) => {
-				if (idx == 0 || mpop < minPop) {
+			totalProductions.forEach((prod, idx) => {
+				if (idx == 0 || prod < minProd) {
 					ownerNum = idx;
-					minPop = mpop;
+					minProd = prod;
 				}
 			});
 
@@ -460,45 +449,34 @@ export class Game {
 			let d: RegionGameData = r.gameData;
 			let ownerNum: number;
 
-			// find owner w/ smallest max pop
-			ownerNum = findSmallestMaxPopPlayer();
+			// find owner w/ smallest max production
+			ownerNum = findSmallestProductionPlayer();
 			d.owner = players[ownerNum];
-			totalMaxPops[ownerNum] += d.maximumPopulation;
+			totalProductions[ownerNum] += d.production;
 		});
 
-		// make every player start w/ the same initial total population by multiplying
-		// initial populations by a factor that depends on the totals.
-		let minTotalPop = -1;
+		// make every player start w/ the same initial total production by multiplying
+		// initial productions by a factor that depends on the totals.
+		let minTotalProd = -1;
 
-		totalMaxPops.forEach(function (mp) {
-			if (minTotalPop == -1 || mp < minTotalPop) {
-				minTotalPop = mp;
+		totalProductions.forEach(function (mp) {
+			if (minTotalProd == -1 || mp < minTotalProd) {
+				minTotalProd = mp;
 			}
 		});
 
 		players.forEach((p, i) => {
-			p.startingPopulationMultiplier = this.config.population.initialMax * minTotalPop / totalMaxPops[i];
-			p.totalPop = 0;
+			p.startingProductionMultiplier = this.config.productivity.initialMax * minTotalProd / totalProductions[i];
+			p.totalProduction = 0;
 		});
 
 		regionsBySize.forEach((r) => {
 			let d = r.gameData;
 
-			d.population = Math.floor(d.maximumPopulation * d.owner.startingPopulationMultiplier);
-			d.owner.totalPop += d.population;
+			d.production = Math.floor(d.production * d.owner.startingProductionMultiplier);
+			d.owner.totalProduction += d.production;
 
-			// initialize loyalty numbers
-			let n = players.length;
-			let initLoyal = this.config.loyalty.ownerInitial;
-			for (let i=0; i < n; i++) {
-				if (players[i] == d.owner) {
-					d.loyalty[i] = initLoyal;
-				} else {
-					d.loyalty[i] = (1 - initLoyal) / (n-1);
-				}
-			}
-
-			d.militarySize = Math.floor(this.config.military.initialMilitary * d.population);
+			d.militarySize = Math.floor(this.config.military.initialMilitary * d.production);
 			r.gameData = d;
 		});
 	}
@@ -550,41 +528,8 @@ export class Game {
 		let cn = byclass('countryName');
 		cn.innerText = d.name; 
 		util.elementColorize(cn, d.owner.color);
-		byclass('countryPopulation').innerText = this.numstr(d.population);
-		byclass('countryMilitary').innerText = this.numstr(d.militarySize);
-		byclass('populationFill').style.width = Math.floor(BAR_WIDTH * d.population / d.maximumPopulation) + 'px'; 
- 
-		let popBar = byclass('countryPopulationBar'); 
-		util.domRemoveChildren(popBar); 
-	
-		let totalLoyalty = d.loyalty.reduce((prev, curr) => prev+curr, 0);
-		let sortedLoyalty = d.loyalty.map((val, idx) => {
-			return { val: val, player: players[idx] }
-		}).sort((a, b) => { return b.val - a.val });
-
-		sortedLoyalty.forEach((o) => {
-			let proportion = o.val / totalLoyalty;
-			let el;
-
-			if (proportion > 0) {
-				let width = Math.floor(Math.floor(100 * BAR_WIDTH * proportion) / 100);
-				el = document.createElement('div');
-				el.style.backgroundColor = util.colorArrayToRGB(o.player.color);
-				el.style.width = width + 'px';
-				totalPixels += width;
-				popBar.appendChild(el);
-
-				if (firstWidth == 0) {
-					firstWidth = width;
-					firstDiv = el;
-				}
-			}
-		});
-
-		widthDeficit = popBar.clientWidth - totalPixels;
-		if (widthDeficit != 0) {
-			firstDiv.style.width = (firstWidth + widthDeficit) + 'px';
-		}
+		byclass('countryProduction').innerText = this.numstr(d.production);
+		byclass('countryMilitary').innerText = this.numstr(d.militarySize); 
 	}
 
 	private showActionInput(pa: PlannedAction) {
@@ -631,10 +576,6 @@ export class Game {
 		if (pa.action === 'attack') {
 			actionDefault = this.config.actions.attack;
 			baseNumber = pa.source.gameData.militarySize;
-		} else if (pa.action === 'settle') {
-			actionDefault = this.config.actions.settle;
-			baseNumber = pa.source.gameData.population;
-			maxPercent = Math.min(100, 100 * (pa.target.gameData.maximumPopulation - pa.target.gameData.population) / pa.source.gameData.population);
 		} else if (pa.action === 'move') {
 			actionDefault = this.config.actions.move;
 			baseNumber = pa.source.gameData.militarySize;
@@ -709,7 +650,6 @@ export class Game {
 		btn.classList.add('disabled');
 
 		let moveActions: PlannedAction[] = [ ];
-		let settleByRegion = new Map<number, PlannedAction[]>();
 		let attacksByRegion = new Map<number, PlannedAction[]>();
 
 		// TODO: a small matter of implementing NPC decisions
@@ -720,17 +660,6 @@ export class Game {
 
 				if (a.action == 'move') {
 					moveActions.push(a);
-				} else if (a.action == 'settle') {
-					let settlings: PlannedAction[];
-
-					if (settleByRegion.has(id)) {
-						settlings = settleByRegion.get(id);
-					} else {
-						settlings = [ ];
-						settleByRegion.set(id, settlings);
-					}
-
-					settlings.push(a);
 				} else if (a.action == 'attack') {
 					let attacks: PlannedAction[];
 
@@ -758,26 +687,19 @@ export class Game {
 			game.moveAction(a);
 			advance(a, cb);
 		}, function () {
-			const sIndices: number[] = Array.from(settleByRegion.keys());
-			util.asyncEach(sIndices, (idx:number, cb:Function) => {
-				let settlings = settleByRegion.get(idx);
-				game.settleActions(settlings, advance, cb);
+			const aIndices: number[] = Array.from(attacksByRegion.keys());
+			util.asyncEach(aIndices, (idx:number, cb:Function) => {
+				let attacks = attacksByRegion.get(idx);
+				game.attackActions(attacks, advance, cb);
 			}, () => {
-				const aIndices: number[] = Array.from(attacksByRegion.keys());
-				util.asyncEach(aIndices, (idx:number, cb:Function) => {
-					let attacks = attacksByRegion.get(idx);
-					game.attackActions(attacks, advance, cb);
-				}, () => {
-					// all done
-					game.players.forEach(p => {
-						p.plannedActions = [ ];
-					});
-
-					game.regionsGrowPopulation();
-					game.regionsGrowMilitary();
-
-					btn.classList.remove('disabled');
+				// all done
+				game.players.forEach(p => {
+					p.plannedActions = [ ];
 				});
+
+				game.regionsGrowMilitary();
+
+				btn.classList.remove('disabled');
 			});
 		});
 	}
@@ -795,68 +717,6 @@ export class Game {
 		a.source.gameData.militarySize -= a.num;
 		a.target.gameData.militarySize += a.num;
 		this.removeActionFromList(a);
-	}
-
-	private settleActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
-		let game = this;
-		let totalAdding = 0;
-		let newPop = 0;
-		let targetData = actions[0].target.gameData;
-		let proportion = 1.0;
-		let loyaltyTotals: number[] = [ ];
-		let loyaltyGrandTotal = 0;
-
-		actions.forEach(a => {
-			totalAdding += a.num;
-		});
-
-		game.players.forEach(p => {
-			loyaltyTotals.push(0);
-		});
-
-		newPop = totalAdding + targetData.population;
-		if (newPop > 0) {
-			if (newPop > targetData.maximumPopulation) {
-				proportion = (targetData.maximumPopulation - targetData.population) / totalAdding;
-				newPop = targetData.maximumPopulation;
-			}
-
-			// start w/ the original loyalty numbers
-			targetData.loyalty.forEach((n, idx) => {
-				//targetData.loyalty(n);
-				let num = targetData.population * n;
-				loyaltyTotals[idx] += num;
-				loyaltyGrandTotal += num;
-			});
-
-			// add in the loyalty of all the settlers
-			actions.forEach((a) => {
-				a.source.gameData.loyalty.forEach((n, idx) => {
-					let num = proportion * a.num * n;
-					loyaltyTotals[idx] += num;
-					loyaltyGrandTotal += num;
-				});
-			});
-
-			// set loyalty proportions
-			targetData.loyalty = targetData.loyalty.map((n, idx) => {
-				return loyaltyTotals[idx] / loyaltyGrandTotal;
-			});
-
-			// set new populations
-			targetData.population = newPop;
-			actions.forEach((a) => {
-				a.source.gameData.population -= Math.floor(proportion * a.num);
-			});
-		}
-
-		// clear
-		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
-			game.removeActionFromList(a);
-			advanceCb(a, nextCb);
-		}, () => {
-			doneCb();
-		});
 	}
 
 	private processSingleConflict(a:PlannedAction) {
@@ -882,11 +742,8 @@ export class Game {
 		eff_attacker = c.minAttackEffect;
 		eff_attacker += Math.max((2 - dist)/2, 0) * (c.maxAttackEffect - c.minAttackEffect);
 
-		// defender effectiveness depends on relative population loyaly
-		eff_defender = c.minDefendEffect;
-		if (d.population > 0) {
-			eff_defender += (c.maxDefendEffect - c.minAttackEffect) * this.regionGetLoyalPop(d) / d.population; 
-		}
+		// defender effectiveness is a constant
+		eff_defender = this.config.actions.attack.defendEffect;
 
 		force_attacker = attacker_num * eff_attacker;
 		force_defender = defender_num * eff_defender;
@@ -919,12 +776,8 @@ export class Game {
 		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
 			let d = a.target.gameData;
 			let result = game.processSingleConflict(a);
-			let civKilled = game.config.actions.attack.civilianCasualtyFactor * (d.militarySize - result.defender_remaining);
-			let civRemaining = Math.max(0, d.population - civKilled);
 
 			a.source.gameData.militarySize -= a.num;
-
-			d.population = civRemaining;
 
 			if (result.defender_remaining > 0) {
 				d.militarySize = result.defender_remaining;
@@ -943,49 +796,15 @@ export class Game {
 		});
 	}
 
-	private regionGetLoyalPop(d: RegionGameData) {
-		return d.population * d.loyalty[d.owner.id];
-	}
-
-	private regionsGrowPopulation() {
-		let g = this.config.population.loyalGrowth;
-
-		this.regions.forEach((r:Region) => {
-			let d = r.gameData;
-			let playerIndex = d.owner.id;
-			let loyalPop = this.regionGetLoyalPop(d);
-			let addPop = Math.floor(loyalPop * g);
-
-			if (addPop + d.population > d.maximumPopulation) {
-				addPop = d.maximumPopulation - d.population;
-			}
-
-			let newLoyalPop = loyalPop + addPop;
-			let newTotalPop = d.population + addPop;
-
-			d.loyalty = d.loyalty.map((proportion, idx) => {
-				if (idx == playerIndex) {
-					return newLoyalPop / newTotalPop;
-				} else {
-					return (proportion * d.population) / newTotalPop;
-				}
-			});
-
-			d.population = newTotalPop;
-		}, this);
-
-	}
-
 	private regionsGrowMilitary() {
 		this.regions.forEach((r:Region) => {
 			let d = r.gameData;
-			let loyalPop = this.regionGetLoyalPop(d);
-			let growth = loyalPop * this.config.military.initialMilitary * this.config.military.growthFactor;
+			let growth = d.production * this.config.military.initialMilitary * this.config.military.growthFactor;
 
 			r.neighbors.forEach(n => {
 				let nd = n.gameData;
 				if (nd.owner == d.owner) {
-					growth += this.regionGetLoyalPop(nd) * this.config.military.initialMilitary * this.config.military.neighborGrowthFactor;
+					growth += nd.production * this.config.military.initialMilitary * this.config.military.neighborGrowthFactor;
 				}
 			}, this);
 
