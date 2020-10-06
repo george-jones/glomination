@@ -43,8 +43,8 @@ export interface Config {
 export function getConfig () : Config {
 	return {
 		productivity: {
-			lowBaseDensity: 0.3,
-			highBaseDensity: 1.0,
+			lowBaseDensity: 0.03,
+			highBaseDensity: 0.1,
 			polar: 0.15,
 			equatorial: 1.0,
 			initialMax: 0.4
@@ -60,7 +60,7 @@ export function getConfig () : Config {
 				minAttackEffect: 0.5,
 				maxAttackEffect: 1.0,
 				attackerLuck: 0.1,
-				defendEffect: 1.0,
+				defendEffect	: 1.0,
 				defenderLuck: 0.1,
 			},
 			move: {
