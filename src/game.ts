@@ -763,7 +763,6 @@ export class Game {
 
 		// defender effectiveness is a constant
 		eff_2 = conflict[1].eff;
-
 		force_1 = num_1 * eff_1;
 		force_2 = num_2 * eff_2;
 		luck = rand.gaussianRange(-1 * c.luck, c.luck);
@@ -780,7 +779,7 @@ export class Game {
 			return conflict[0];
 		} else {
 			conflict[1].num = Math.ceil(num_2 * diff / force_2)
-			return conflict[0];
+			return conflict[1];
 		}
 	}
 
@@ -878,7 +877,7 @@ export class Game {
 				let total_eff = 0;
 				cbt.num = cbt.nums.reduce((prev, curr) => prev + curr, 0);
 				total_eff = cbt.effs.reduce((prev, curr, idx) => prev + cbt.nums[idx] * curr, 0);
-				cbt.eff = total_eff / cbt.nums.length;
+				cbt.eff = total_eff / cbt.num;
 			}
 		});
 
