@@ -679,6 +679,22 @@ export class Game {
 
 		// TODO: a small matter of implementing NPC decisions
 
+		// temporary: find a different player to get involved in battles
+		this.players[this.currentPlayer].plannedActions.forEach(a => {
+			// find a random plaayer 2 source
+			let p2 = game.players[2];
+
+			let source: Region = rand.pick(game.regions.filter(r => r.gameData.owner == p2))[0];
+
+			let a2: PlannedAction = {
+				action: 'attack',
+				source: source,
+				target: a.target,
+				num: source.gameData.militarySize
+			}
+			p2.plannedActions.push(a2);
+		});
+
 		this.players.forEach(p => {
 			p.plannedActions.forEach(a => {
 				let id = a.target.gameData.id;
@@ -788,6 +804,7 @@ export class Game {
 		let conflicts: Combatant[][] = [ ];
 		let divMap = new Map<Player, number>();
 
+		console.log(cbts);
 		cbts.forEach(cbt => {
 			divMap.set(cbt.player, 0);
 		});
