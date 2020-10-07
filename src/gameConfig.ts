@@ -24,9 +24,8 @@ interface Action {
 interface AttackAction extends Action {
 	minAttackEffect: number;
 	maxAttackEffect: number;
-	attackerLuck: number;
 	defendEffect: number;
-	defenderLuck: number;
+	luck: number;
 }
 
 export interface Config {
@@ -55,9 +54,8 @@ export function getConfig () : Config {
 				defaultProportion: 0.33,
 				minAttackEffect: 0.5,
 				maxAttackEffect: 1.0,
-				attackerLuck: 0.1,
-				defendEffect	: 1.0,
-				defenderLuck: 0.1,
+				luck: 0.1,
+				defendEffect: 1.0,
 			},
 			move: {
 				defaultProportion: 0.33

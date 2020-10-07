@@ -6,8 +6,6 @@ import { Region, randomName } from './countryMaker';
 import * as cfg from './gameConfig';
 import * as util from './util';
 
-let BAR_WIDTH = 240;
-
 interface PlannedAction {
 	action: string;
 	source: Region;
@@ -25,6 +23,14 @@ interface Player {
 	startingProductionMultiplier: number;
 	totalProduction: number;
 	plannedActions: PlannedAction[];
+}
+
+interface Combatant {
+	player: Player;
+	nums?: number[];
+	effs?: number[];
+	num?: number;
+	eff?: number;
 }
 
 export interface RegionGameData {
@@ -738,76 +744,152 @@ export class Game {
 		this.removeActionFromList(a);
 	}
 
-	private processSingleConflict(a:PlannedAction) {
+	private processSingleConflict(conflict: Combatant[]): Combatant {
 		let c = this.config.actions.attack;
-		let d = a.target.gameData;
-		let dist = 0;
-		let eff_attacker = 0;
-		let eff_defender = 0;
-		let force_attacker = 0;
-		let force_defender = 0;
+		let eff_1 = 0;
+		let eff_2 = 0;
+		let force_1 = 0;
+		let force_2 = 0;
 		let luck = 0;
 		let diff = 0;
-		let defender_remaining = 0;
-		let attacker_remaining = 0;
-		let attacker_num = 0;
-		let defender_num = 0;
+		let num_1 = 0;
+		let num_2 = 0;
 
-		attacker_num = a.num;
-		defender_num = d.militarySize;
+		num_1 = conflict[0].num;
+		num_2 = conflict[1].num;
 
 		// attacker effectiveness goes down with distance
-		dist = a.source.midPoint.subtract(a.target.midPoint).length();
-		eff_attacker = c.minAttackEffect;
-		eff_attacker += Math.max((2 - dist)/2, 0) * (c.maxAttackEffect - c.minAttackEffect);
+		eff_1 = conflict[0].eff;
 
 		// defender effectiveness is a constant
-		eff_defender = this.config.actions.attack.defendEffect;
+		eff_2 = conflict[1].eff;
 
-		force_attacker = attacker_num * eff_attacker;
-		force_defender = defender_num * eff_defender;
-		luck = rand.gaussianRange(-1 * c.attackerLuck, c.defenderLuck);
+		force_1 = num_1 * eff_1;
+		force_2 = num_2 * eff_2;
+		luck = rand.gaussianRange(-1 * c.luck, c.luck);
 		if (luck < 0) {
-			force_attacker *= 1 - luck;
+			force_1 *= 1 - luck;
 		} else {
-			force_defender *= 1 + luck;
+			force_2 *= 1 + luck;
 		}
 
-		diff = force_defender - force_attacker;
+		diff = force_2 - force_1;
 		
 		if (diff < 0) {
-			defender_remaining = 0;
-			attacker_remaining = Math.ceil(attacker_num * -1 * diff / force_attacker);
+			conflict[0].num = Math.ceil(num_1 * -1 * diff / force_1);
+			return conflict[0];
 		} else {
-			attacker_remaining = 0
-			defender_remaining = Math.ceil(defender_num * diff / force_defender)
+			conflict[1].num = Math.ceil(num_2 * diff / force_2)
+			return conflict[0];
 		}
+	}
 
-		return {
-			attacker_remaining,
-			defender_remaining
+	private doWar(cbts: Combatant[]): Combatant[]
+	{
+		let conflicts: Combatant[][] = [ ];
+		let divMap = new Map<Player, number>();
+
+		cbts.forEach(cbt => {
+			divMap.set(cbt.player, 0);
+		});
+
+		// make mini-conflicts between all combatants
+		cbts.forEach(cbt => {
+			cbts.forEach(cbt2 => {
+				if (cbt.player.id < cbt2.player.id) {
+					divMap.set(cbt.player, divMap.get(cbt.player) + 1);
+					divMap.set(cbt2.player, divMap.get(cbt2.player) + 1);
+					conflicts.push([ {...cbt}, {...cbt2} ]);
+				}
+			});
+		});
+
+		// reduce numbers in each mini-conflict
+		conflicts.forEach(c => {
+			c[0].num /= divMap.get(c[0].player);
+			c[1].num /= divMap.get(c[1].player);
+		});
+
+		// squash all conflicts back into single combatant records
+		let result = conflicts.map(conflict => this.processSingleConflict(conflict));
+		let survivors: Combatant[] = [ ];
+		result.forEach(cbt => {
+			let s = survivors.find((s) => s.player == cbt.player);
+			if (s) {
+				s.num += cbt.num;
+			} else {
+				survivors.push(cbt);
+			}
+		});
+
+		if (survivors.length > 1) {
+			return this.doWar(survivors);
+		} else {
+			return survivors;
 		}
 	}
 
 	private attackActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
 		let game = this;
+		let target = actions[0].target;
+		let combatants: Combatant[] = [ ];
 
-		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
-			let d = a.target.gameData;
-			let result = game.processSingleConflict(a);
+		// from all attacking actions, make combatant records
+		actions.forEach(a => {
+			let attacker = a.source.gameData.owner;
+			let defender = a.target.gameData.owner;
+			let idx;
+			let cbt:Combatant;
+			let conf = this.config.actions.attack;
 
-			a.source.gameData.militarySize -= a.num;
-
-			if (result.defender_remaining > 0) {
-				d.militarySize = result.defender_remaining;
-			} else {
-				// attacker took control of region
-				d.militarySize = result.attacker_remaining;
-				d.owner = a.source.gameData.owner;
-				a.target.setColor(d.owner.color);
-				game.planet.reColorAll();
+			// only add defender combatant once
+			idx = combatants.findIndex((c) => c.player == defender);
+			if (idx == -1) {
+				cbt = {
+					player: defender,
+					num: a.target.gameData.militarySize,
+					eff: this.config.actions.attack.defendEffect // defender effectiveness is a constant
+				};
+				combatants.push(cbt);
 			}
 
+			// make or find and add to attacker combatant
+			idx = combatants.findIndex((c) => c.player == attacker);
+			let dist = a.source.midPoint.subtract(a.target.midPoint).length();
+			let eff_attacker = conf.minAttackEffect;
+			eff_attacker += Math.max((2 - dist)/2, 0) * (conf.maxAttackEffect - conf.minAttackEffect);
+			if (idx == -1) {
+				cbt = {
+					player: attacker,
+					nums: [ ],
+					effs: [ ]
+				}
+				combatants.push(cbt);
+			} else {
+				cbt = combatants[idx];
+			}
+			cbt.nums.push(a.num);
+			cbt.effs.push(eff_attacker);
+		}, this);
+
+		// combine combatant numbers
+		combatants.forEach(cbt => {
+			if (cbt.nums) {
+				let total_eff = 0;
+				cbt.num = cbt.nums.reduce((prev, curr) => prev + curr, 0);
+				total_eff = cbt.effs.reduce((prev, curr, idx) => prev + cbt.nums[idx] * curr, 0);
+				cbt.eff = total_eff / cbt.nums.length;
+			}
+		});
+
+		let winner = this.doWar(combatants);
+		let d = target.gameData;
+		d.owner = winner[0].player;
+		d.militarySize = winner[0].num;
+		target.setColor(d.owner.color);
+		game.planet.reColorAll();
+
+		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
 			game.removeActionFromList(a);
 			advanceCb(a, nextCb);
 		}, () => {
