@@ -854,6 +854,9 @@ export class Game {
 
 			// make or find and add to attacker combatant
 			idx = combatants.findIndex((c) => c.player == attacker);
+
+			// remove military force from attacker's source country
+			a.source.gameData.militarySize -= a.num;
 			let dist = a.source.midPoint.subtract(a.target.midPoint).length();
 			let eff_attacker = conf.minAttackEffect;
 			eff_attacker += Math.max((2 - dist)/2, 0) * (conf.maxAttackEffect - conf.minAttackEffect);
