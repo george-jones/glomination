@@ -799,12 +799,11 @@ export class Game {
 		}
 	}
 
-	private doWar(cbts: Combatant[]): Combatant[]
+	private doWar(cbts: Combatant[],): Combatant[]
 	{
 		let conflicts: Combatant[][] = [ ];
 		let divMap = new Map<Player, number>();
 
-		console.log(cbts);
 		cbts.forEach(cbt => {
 			divMap.set(cbt.player, 0);
 		});
@@ -845,10 +844,24 @@ export class Game {
 		}
 	}
 
+	private showWar(target: Region, combatants: Combatant[], winner: Combatant, playerInvolved: Boolean, callback: () => void) {
+		// don't bother showing anything, player not involved
+		if (!playerInvolved) {
+			callback();
+			return;
+		}
+
+		console.log('combatants', combatants);
+		console.log('winner', winner);
+
+		callback();
+	}
+
 	private attackActions(actions: PlannedAction[], advanceCb: Function, doneCb: Function) {
 		let game = this;
 		let target = actions[0].target;
 		let combatants: Combatant[] = [ ];
+		let playerInvolved = false;
 
 		// from all attacking actions, make combatant records
 		actions.forEach(a => {
@@ -857,6 +870,10 @@ export class Game {
 			let idx;
 			let cbt:Combatant;
 			let conf = this.config.actions.attack;
+
+			if ([attacker, defender].indexOf(game.players[game.currentPlayer]) >= 0) {
+				playerInvolved = true;
+			}
 
 			// only add defender combatant once
 			idx = combatants.findIndex((c) => c.player == defender);
@@ -902,17 +919,19 @@ export class Game {
 		});
 
 		let winner = this.doWar(combatants);
-		let d = target.gameData;
-		d.owner = winner[0].player;
-		d.militarySize = winner[0].num;
-		target.setColor(d.owner.color);
-		game.planet.reColorAll();
+		this.showWar(target, combatants, winner[0], playerInvolved, () => {
+			let d = target.gameData;
+			d.owner = winner[0].player;
+			d.militarySize = winner[0].num;
+			target.setColor(d.owner.color);
+			game.planet.reColorAll();
 
-		util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
-			game.removeActionFromList(a);
-			advanceCb(a, nextCb);
-		}, () => {
-			doneCb();
+			util.asyncEach(actions, (a: PlannedAction, nextCb: Function) => {
+				game.removeActionFromList(a);
+				advanceCb(a, nextCb);
+			}, () => {
+				doneCb();
+			});
 		});
 	}
 
