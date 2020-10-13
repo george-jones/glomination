@@ -101,7 +101,7 @@ export class Planet {
 		this.makeColocatedVertMap();
 		this.fixCloseVertices();
 		this.jumbleVertices();
-		this.renormal();
+		///this.renormal(); // enabling here causes picking problems
 		this.makeFaces();
 	}
 
@@ -780,14 +780,22 @@ export class Planet {
 		this.regions.forEach((r) => {
 			r.faces.forEach((f) => {
 				f.vertices.forEach((v) => {
-					normalData[v*3] *= rand.range(lower, upper);
-					normalData[v*3 + 1] *= rand.range(lower, upper);
-					normalData[v*3 + 2] *= rand.range(lower, upper);
+					let norm = new BABYLON.Vector3(
+						normalData[v*3] *= rand.range(lower, upper),
+						normalData[v*3 + 1] *= rand.range(lower, upper),
+						normalData[v*3 + 2] *= rand.range(lower, upper));
+					norm.normalize();
+					normalData[v*3] = norm.x;
+					normalData[v*3 + 1] = norm.y;
+					normalData[v*3 + 2] = norm.z;
 				});
 			});
 		});
 
 		this.sphere.setVerticesData(BABYLON.VertexBuffer.NormalKind, normalData);
+
+		// breaks picking IF renormal gets called in the constructor. No idea why. Seems to work ok w/out this.
+		///this.sphere.updateFacetData();
 	}
 
 	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
