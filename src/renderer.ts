@@ -151,6 +151,8 @@ export default class Renderer {
 				this.planet.smoothPerimeters();
 			} else if (stepNum == 7) {
 				this.planet.createBorders();
+			} else if (stepNum == 8) {
+				this.planet.jiggleNormals();
 			} else {
 				this.planet.reColorAll();
 				// We're supposed to do this after modifying the geometry, which the above

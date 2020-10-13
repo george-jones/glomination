@@ -767,6 +767,29 @@ export class Planet {
 		});
 	}
 
+	public jiggleNormals() {
+		// Experiment - jiggle normals, see if that changes appearance at all
+		let normalData = this.sphere.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		let lower = 0.6;
+		let upper = 1.4;
+
+		// to do everything, including water
+		//normalData = normalData.map((num:number) => num * rand.range(0.5, 1.5));
+
+		// to do just the land
+		this.regions.forEach((r) => {
+			r.faces.forEach((f) => {
+				f.vertices.forEach((v) => {
+					normalData[v*3] *= rand.range(lower, upper);
+					normalData[v*3 + 1] *= rand.range(lower, upper);
+					normalData[v*3 + 2] *= rand.range(lower, upper);
+				});
+			});
+		});
+
+		this.sphere.setVerticesData(BABYLON.VertexBuffer.NormalKind, normalData);
+	}
+
 	public makeRegionsArrow(source: Region, target: Region, color: number[]): BABYLON.Mesh {
 		// find midpoint
 		let mp = target.midPoint.add(source.midPoint);
