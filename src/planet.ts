@@ -768,10 +768,10 @@ export class Planet {
 	}
 
 	public jiggleNormals() {
-		// Experiment - jiggle normals, see if that changes appearance at all
+		let p = this;
 		let normalData = this.sphere.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-		let lower = 0.6;
-		let upper = 1.4;
+		let lower = 0.3;
+		let upper = 1.7;
 
 		// to do everything, including water
 		//normalData = normalData.map((num:number) => num * rand.range(0.5, 1.5));
@@ -788,6 +788,53 @@ export class Planet {
 					normalData[v*3] = norm.x;
 					normalData[v*3 + 1] = norm.y;
 					normalData[v*3 + 2] = norm.z;
+				});
+			});
+		});
+
+		// smooth by averaging out all the co-located normals
+		this.regions.forEach((r) => {
+			let to_smooth: number[] = [ ];
+
+			r.faces.forEach((f) => {
+				f.vertices.forEach((v) => {
+					to_smooth.push(v);
+				});
+			});
+
+			to_smooth.forEach((v) => {
+				if (v < 0) {
+					return;
+				}
+				let others = p.colocatedVertMap[v];
+				let in_region: number[] = [ v ];
+
+				if (others) {
+					others.forEach((v2) => {
+						let idx = to_smooth.indexOf(v2);
+						if (idx >= 0) {
+							in_region.push(v2);
+							to_smooth[idx] = -1;
+						}
+					});
+				}
+
+				let x = 0;
+				let y = 0;
+				let z = 0;
+				in_region.forEach((v2) => {
+					x += normalData[v2*3];
+					y += normalData[v2*3 + 1];
+					z += normalData[v2*3 + 2];
+				});
+
+				let norm = new BABYLON.Vector3(x, y, z);
+				norm.normalize();
+
+				in_region.forEach((v2) => {
+					normalData[v2*3] = norm.x;
+					normalData[v2*3 + 1] = norm.y;
+					normalData[v2*3 + 2] = norm.z;
 				});
 			});
 		});
